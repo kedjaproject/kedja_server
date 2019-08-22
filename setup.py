@@ -27,6 +27,7 @@ requires = [
     'authomatic',
     'pytz',
     'redis',
+    'awesome-slugify',
 ]
 
 tests_require = [

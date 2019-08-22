@@ -1,10 +1,80 @@
 from unittest import TestCase
 
-from kedja.testing import get_settings
 from pyramid import testing
 from pyramid.request import apply_request_extensions
 from transaction import commit
 from webtest import TestApp
+
+from kedja.testing import get_settings
+
+
+_expected = \
+"""- contained:
+  - contained:
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 101
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 201
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 301
+      type_name: Card
+    data:
+      title: ''
+    rid: 10
+    type_name: Collection
+  - contained:
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 102
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 202
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 302
+      type_name: Card
+    data:
+      title: ''
+    rid: 20
+    type_name: Collection
+  - contained:
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 103
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 203
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: ''
+      rid: 303
+      type_name: Card
+    data:
+      title: ''
+    rid: 30
+    type_name: Collection
+  data:
+    title: ''
+  rid: 2
+  type_name: Wall
+"""
 
 
 class FunctionalWallExportAPIViewTests(TestCase):
@@ -38,22 +108,6 @@ class FunctionalWallExportAPIViewTests(TestCase):
         request = testing.DummyRequest()
         apply_request_extensions(request)
         self.config.begin(request)
-        #content = self._fixture(request)
         self._fixture(request)
         response = app.get('/api/1/export/2', status=200)
-        expected_response = [
-            {'type_name': 'Wall', 'rid': 2, 'data': {'title': ''}, 'contained': [
-            {'type_name': 'Collection', 'rid': 10, 'data': {'title': ''},
-             'contained': [{'type_name': 'Card', 'rid': 101, 'data': {'title': '', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 201, 'data': {'title': '', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 301, 'data': {'title': '', 'int_indicator': -1}}]},
-            {'type_name': 'Collection', 'rid': 20, 'data': {'title': ''},
-             'contained': [{'type_name': 'Card', 'rid': 102, 'data': {'title': '', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 202, 'data': {'title': '', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 302, 'data': {'title': '', 'int_indicator': -1}}]},
-            {'type_name': 'Collection', 'rid': 30, 'data': {'title': ''},
-             'contained': [{'type_name': 'Card', 'rid': 103, 'data': {'title': '', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 203, 'data': {'title': '', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 303, 'data': {'title': '', 'int_indicator': -1}}]}]}
-        ]
-        self.assertEqual(response.json_body, expected_response)
+        self.assertEqual(response.json_body, _expected)
