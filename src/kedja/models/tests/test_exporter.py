@@ -41,7 +41,7 @@ class ExporterTests(TestCase):
         apply_request_extensions(request)
         self.config.begin(request)
         data = self._fut(card, request)
-        self.assertEqual([{'type_name': 'Card', 'rid': 4, 'data': {'int_indicator': -1, 'title': '- Untiled -'}}], data)
+        self.assertEqual([{'type_name': 'Card', 'rid': 4, 'data': {'int_indicator': -1, 'title': ''}}], data)
 
     def test_export_resource_tree(self):
         root = _fixture(self.config)
@@ -52,11 +52,11 @@ class ExporterTests(TestCase):
         data = self._fut(card, request)
         self.assertEqual(
             [{'contained': [{'contained': [{'data': {'int_indicator': -1,
-                                                     'title': '- Untiled -'},
+                                                     'title': ''},
                                             'rid': 4,
                                             'type_name': 'Card'},
                                            {'data': {'int_indicator': -1,
-                                                     'title': '- Untiled -'},
+                                                     'title': ''},
                                             'rid': 5,
                                             'type_name': 'Card'}],
                              'data': {'title': ''},

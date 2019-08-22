@@ -27,7 +27,7 @@ class CardSchema(colander.Schema):
 
 @implementer(ICard)
 class Card(Folder, JSONRenderable):
-    title = "- Untiled -"
+    title = ""
     int_indicator = -1
 
     def __init__(self, **kw):

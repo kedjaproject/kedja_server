@@ -179,7 +179,7 @@ class FunctionalCardsAPITests(TestCase):
         apply_request_extensions(request)
         self._fixture(request)
         response = app.get('/api/1/collections/3/cards', status=200)
-        self.assertEqual([{'data': {'int_indicator': -1, 'title': '- Untiled -'}, 'rid': 4, 'type_name': 'Card'}], response.json_body)
+        self.assertEqual([{'data': {'int_indicator': -1, 'title': ''}, 'rid': 4, 'type_name': 'Card'}], response.json_body)
 
     def test_collection_post(self):
         wsgiapp = self.config.make_wsgi_app()

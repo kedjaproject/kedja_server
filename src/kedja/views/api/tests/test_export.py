@@ -44,16 +44,16 @@ class FunctionalWallExportAPIViewTests(TestCase):
         expected_response = [
             {'type_name': 'Wall', 'rid': 2, 'data': {'title': ''}, 'contained': [
             {'type_name': 'Collection', 'rid': 10, 'data': {'title': ''},
-             'contained': [{'type_name': 'Card', 'rid': 101, 'data': {'title': '- Untiled -', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 201, 'data': {'title': '- Untiled -', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 301, 'data': {'title': '- Untiled -', 'int_indicator': -1}}]},
+             'contained': [{'type_name': 'Card', 'rid': 101, 'data': {'title': '', 'int_indicator': -1}},
+                           {'type_name': 'Card', 'rid': 201, 'data': {'title': '', 'int_indicator': -1}},
+                           {'type_name': 'Card', 'rid': 301, 'data': {'title': '', 'int_indicator': -1}}]},
             {'type_name': 'Collection', 'rid': 20, 'data': {'title': ''},
-             'contained': [{'type_name': 'Card', 'rid': 102, 'data': {'title': '- Untiled -', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 202, 'data': {'title': '- Untiled -', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 302, 'data': {'title': '- Untiled -', 'int_indicator': -1}}]},
+             'contained': [{'type_name': 'Card', 'rid': 102, 'data': {'title': '', 'int_indicator': -1}},
+                           {'type_name': 'Card', 'rid': 202, 'data': {'title': '', 'int_indicator': -1}},
+                           {'type_name': 'Card', 'rid': 302, 'data': {'title': '', 'int_indicator': -1}}]},
             {'type_name': 'Collection', 'rid': 30, 'data': {'title': ''},
-             'contained': [{'type_name': 'Card', 'rid': 103, 'data': {'title': '- Untiled -', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 203, 'data': {'title': '- Untiled -', 'int_indicator': -1}},
-                           {'type_name': 'Card', 'rid': 303, 'data': {'title': '- Untiled -', 'int_indicator': -1}}]}]}
+             'contained': [{'type_name': 'Card', 'rid': 103, 'data': {'title': '', 'int_indicator': -1}},
+                           {'type_name': 'Card', 'rid': 203, 'data': {'title': '', 'int_indicator': -1}},
+                           {'type_name': 'Card', 'rid': 303, 'data': {'title': '', 'int_indicator': -1}}]}]}
         ]
         self.assertEqual(response.json_body, expected_response)

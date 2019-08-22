@@ -24,7 +24,7 @@ class RootSchema(colander.Schema):
 @implementer(IRoot)
 class Root(Folder, JSONRenderable):
     """ Application root - created once. """
-    title = "- Untitled -"
+    title = ""
 
     def __init__(self):
         super().__init__()
