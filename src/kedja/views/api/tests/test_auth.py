@@ -1,13 +1,11 @@
-import os
 from unittest import TestCase
 
-from kedja.models.appmaker import root_populator
-from kedja.testing import get_settings
 from pyramid import testing
-from pyramid.request import apply_request_extensions, Request
+from pyramid.request import apply_request_extensions
 from transaction import commit
 from webtest import TestApp
 
+from kedja.testing import get_settings
 from kedja.interfaces import IOneTimeRegistrationToken
 from kedja.interfaces import IOneTimeAuthToken
 
@@ -62,3 +60,25 @@ class FunctionalAuthenticationAPITests(TestCase):
         token = auth_tokens.create(credentials)
         response = app.post("/api/1/auth/credentials/{}/{}".format('10', token))
         self.assertIn('Authorization', response.json_body)
+
+    def test_valid_with_no_header(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self._fixture(request)
+        response = app.get('/api/1/auth/valid', status=200)
+        self.assertEqual({'userid': None, 'valid_until': None}, response.json_body)
+
+    def test_valid_with_credentials(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self._fixture(request)
+        # Create auth token
+        credentials = self.config.registry.content('Credentials', '10')
+        credentials.save()
+        headers = {'Authorization': credentials.header()}
+        response = app.get('/api/1/auth/valid', status=200, headers=headers)
+        self.assertEqual({'userid': '10', 'valid_until': credentials.get('expires', object())}, response.json_body)

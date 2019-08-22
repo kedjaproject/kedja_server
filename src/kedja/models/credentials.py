@@ -62,6 +62,9 @@ class Credentials(UserDict):
             self._conn.expire(self.get_key(), expires)
             return expires
 
+    def valid_until(self):
+        return self._conn.ttl(self.get_key())
+
     @classmethod
     def load(cls, userid, token, registry=None):
         if registry is None:

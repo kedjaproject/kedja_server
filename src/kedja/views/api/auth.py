@@ -39,21 +39,25 @@ The credentials will be returned (same as 4A)
 from logging import getLogger
 from urllib.parse import urlparse
 
+import colander
 from authomatic.adapters import WebObAdapter
 from cornice.resource import resource
 from cornice.resource import view
-from kedja.interfaces import IAuthomatic
-from kedja.interfaces import IOneTimeRegistrationToken
-from kedja.interfaces import IOneTimeAuthToken
-from kedja.views.api.base import APIBase
-from kedja.views.base import BaseView
+from cornice.validators import colander_validator
+from pyramid.authentication import extract_http_basic_credentials
 from pyramid.decorator import reify
-from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
+from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.httpexceptions import HTTPFound
 from pyramid.response import Response
 from pyramid.security import forget
 from pyramid.view import view_config
-from cornice.validators import colander_validator
 
+from kedja.interfaces import IAuthomatic
+from kedja.interfaces import IOneTimeAuthToken
+from kedja.interfaces import IOneTimeRegistrationToken
+from kedja.models.credentials import get_valid_credentials
+from kedja.views.api.base import APIBase
+from kedja.views.base import BaseView
 
 logger = getLogger(__name__)
 
@@ -257,6 +261,54 @@ class AuthCredentialsAPIView(APIBase, AuthViewMixin):
         userid = self.request.matchdict['userid']
         token = self.request.matchdict['token']
         return self.consume_temp_auth_token(userid, token)
+
+
+class AuthValidBodyResponseSchema(colander.Schema):
+    userid = colander.SchemaNode(
+        colander.String(),
+        missing=None,
+    )
+    valid_until = colander.SchemaNode(
+        colander.Int(),
+        missing=None,
+    )
+
+
+class AuthValidOKResponseSchema(colander.Schema):
+    title = "Valid response"
+    body = AuthValidBodyResponseSchema()
+
+
+auth_valid_response_schemas = {
+    '200': AuthValidOKResponseSchema(description='Response params for authentication check'),
+}
+
+
+@resource(path='/api/1/auth/valid',
+          validators=(colander_validator,),
+          cors_origins=('*',),
+          tags=['Authentication'],
+          factory='kedja.root_factory',
+          response_schemas=auth_valid_response_schemas)
+class AuthValidAPIView(APIBase):
+    """ Check if an authentication is valid. """
+
+    @view()
+    def get(self):
+        userid = self.request.authenticated_userid
+        if userid:
+            # If the user is authenticated, both the http_creds and the credentials will exist.
+            http_creds = extract_http_basic_credentials(self.request)
+            cred = get_valid_credentials(http_creds.username, http_creds.password, registry=self.request.registry)
+            return {
+                'userid': self.request.authenticated_userid,
+                'valid_until': cred.valid_until()
+            }
+        else:
+            return {
+                'userid': None,
+                'valid_until': None
+            }
 
 
 @resource(path='/api/1/auth/logout',
