@@ -49,6 +49,7 @@ def includeme(config):
     config.include(minimal)
     # Internal
     config.include('.config')
+    config.include('.security')
     config.include('.models')
     config.include('.resources')
 

@@ -7,9 +7,9 @@ from pyramid.security import Deny
 from pyramid.security import Everyone
 from pyramid.security import Authenticated
 from pyramid.security import ALL_PERMISSIONS
-from zope.interface import implementer
+from zope.interface import implementer, Interface
 
-from kedja.interfaces import INamedACL
+from kedja.interfaces import INamedACL, ISecurityAware
 from kedja.interfaces import IRole
 
 logger = getLogger(__name__)
@@ -33,11 +33,14 @@ class NamedACL(UserList):
     name = ""
     title = ""
     description = ""
+    required = None
 
-    def __init__(self, name: str = "", title: str = "", description: str = ""):
+    def __init__(self, name: str = "", title: str = "", description: str = "", required = None):
         self.name = name
         self.title = title
         self.description = description
+        if self.required is not None:
+            self.add_required(required)
         super().__init__()
 
     def add_allow(self, ace_role, ace_permissions):
@@ -67,3 +70,32 @@ class NamedACL(UserList):
                     assert isinstance(userid, str), "userid must be a string"
                     if ace_role in roles_iter:
                         yield (ace_action, userid, ace_permissions)
+
+    def add_required(self, ifaces):
+        """ Set a specific interface as a requirement to use this ACL.
+            This is not enforced but can be used for UIs.
+        """
+        if self.required is None:
+            self.required = set()
+        if Interface.providedBy(ifaces):
+            ifaces = [ifaces]
+        self.required.extend(ifaces)
+
+    def usable_for(self, resource):
+        """ Check if this ACL can be used for 'resource'. """
+        if self.required is None:
+            return True
+        for iface in self.required:
+            if iface.providedBy(resource):
+                return True
+        return False
+
+    def details_for(self, resource):
+        """ Returns a dict with details for this acl. """
+        assert ISecurityAware.providedBy(resource)
+        return {
+            'active': resource.acl_name == self.name,
+            'name': self.name,
+            'title': self.title,
+            'description': self.description,
+        }

@@ -4,9 +4,11 @@ from cornice.resource import view
 from cornice.validators import colander_validator
 
 from kedja.resources.wall import WallSchema
+from kedja.utils import get_valid_acls
 from kedja.views.api.base import BaseResponseAPISchema
 from kedja.views.api.base import ResourceAPISchema
 from kedja.views.api.base import ResourceAPIBase
+from kedja import _
 
 
 class WallBodyAPISchema(BaseResponseAPISchema):
@@ -107,7 +109,6 @@ class WallStructureAPIView(ResourceAPIBase):
 
 
 @resource(path='/api/1/walls/{rid}/content',
-          # validators=(colander_validator,),
           cors_origins=('*',),
           tags=['Walls'],
           factory='kedja.root_factory')
@@ -130,6 +131,52 @@ class WallContentAPIView(ResourceAPIBase):
         for v in context.values():
             data[v.rid] = v
             self.get_content(v, data)
+
+
+class WallACLSchema(colander.Schema):
+    acl_name = colander.SchemaNode(
+        colander.String(),
+        title=_("ACL policy to use"),
+    )
+
+
+class WallACLResourceSchema(ResourceAPISchema):
+    title = "Change the used ACL"
+    body = WallACLSchema()
+
+
+@resource(path='/api/1/walls/{rid}/acl',
+          cors_origins=('*',),
+          tags=['Walls'],
+          factory='kedja.root_factory')
+class WallACLAPIView(ResourceAPIBase):
+    type_name = 'Wall'
+
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, 'view_resource_validator'))
+    def get(self):
+        """ Get available ACLs and information about them
+        """
+        wall = self.base_get(self.request.matchdict['rid'], type_name='Wall')
+        if wall:
+            results = []
+            for acl in get_valid_acls(wall, registry=self.request.registry):
+                results.append(acl.details_for(wall))
+            return results
+
+    @view(schema=WallACLResourceSchema(), validators=(colander_validator, 'edit_resource_validator'))
+    def put(self):
+        """ Set ACL policy to use
+        """
+        wall = self.base_get(self.request.matchdict['rid'], type_name='Wall')
+        if wall:
+            valid_acl_names = [acl.name for acl in get_valid_acls(wall, registry=self.request.registry)]
+            appstruct = self.get_json_appstruct()
+            acl_name = appstruct.get('acl_name', '')
+            if acl_name not in valid_acl_names:
+                self.error("%r is not a valid acl_name", type='body', status=400)
+                return
+            wall.acl_name = acl_name
+            return {'acl_name': acl_name}
 
 
 def includeme(config):

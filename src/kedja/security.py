@@ -3,6 +3,8 @@ from pyramid.security import ALL_PERMISSIONS
 from pyramid.security import Everyone
 from pyramid.security import Authenticated
 
+from kedja.interfaces import IWall
+from kedja.interfaces import IUser
 from kedja.models.acl import NamedACL
 from kedja.models.acl import Role
 from kedja import _
@@ -80,7 +82,8 @@ def default_acl(config):
 
     # Private hidden walls
     private_wall = NamedACL('private_wall', title="Private wall",
-                            description="Walls that are private to a specific group of people")
+                            description="Walls that are private to a specific group of people",
+                            required=IWall)
     private_wall.add_allow(INSTANCE_ADMIN, ALL_PERMISSIONS)
     private_wall.add_allow(WALL_OWNER, ALL_PERMISSIONS)
     private_wall.add_allow(COLLABORATOR, [CardPerms[x] for x in base_perm_types])
@@ -92,7 +95,8 @@ def default_acl(config):
 
     # Public walls - everything private walls have but with visibility for everyone
     public_wall = NamedACL('public_wall', title="Public wall",
-                           description="Publicly accessible")
+                           description="Publicly accessible",
+                           required=IWall)
     public_wall.extend(private_wall)
     public_wall.add_allow(psec.Everyone, CardPerms[VIEW])
     public_wall.add_allow(psec.Everyone, CollectionPerms[VIEW])
@@ -100,7 +104,8 @@ def default_acl(config):
 
     # User acl
     user = NamedACL('user', title="User  ACL",
-                    description="For personal things")
+                    description="For personal things",
+                    required=IUser)
     user.add_allow(PERSONAL, ALL_PERMISSIONS)
     user.add_allow(INSTANCE_ADMIN, ALL_PERMISSIONS)
 

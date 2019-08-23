@@ -367,3 +367,68 @@ class FunctionalWallContentAPIViewTests(TestCase):
         converted = render('json', content, request=request)
         expected = loads(converted)
         self.assertEqual(response.json_body, expected)
+
+
+class FunctionalACLAPIViewTests(TestCase):
+
+    def setUp(self):
+        self.config = testing.setUp(settings=get_settings())
+        self.config.include('kedja.testing')
+        self.config.include('pyramid_tm')
+        self.config.include('kedja.views.api.walls')
+        self.config.include('kedja.security.default_acl')
+        self.config.testing_securitypolicy(permissive=True)
+
+    def _fixture(self, request):
+        from kedja import root_factory
+        root = root_factory(request)
+        content = self.config.registry.content
+        root['wall'] = wall = content('Wall', rid=2)
+        commit()
+        return wall
+
+    def test_get(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        self._fixture(request)
+        response = app.get('/api/1/walls/2/acl', status=200)
+        self.assertEqual(1, sum([x['active'] for x in response.json_body]))
+        self.assertIn('private_wall', [x['name'] for x in response.json_body])
+
+    def test_put(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        wall = self._fixture(request)
+        body = dumps({'acl_name': 'public_wall'})
+        self.assertEqual(wall.acl_name, 'private_wall')
+        response = app.put('/api/1/walls/2/acl', params=body, status=200)
+        self.assertEqual(response.json_body, {'acl_name': 'public_wall'})
+        self.assertEqual(wall.acl_name, 'public_wall')
+
+    def test_put_no_data(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        self._fixture(request)
+        body = ""
+        response = app.put('/api/1/walls/2/acl', params=body, status=400)
+        self.assertEqual(response.status_int, 400)
+
+    def test_put_bad_data(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        self._fixture(request)
+        body = dumps({'acl_name': 'something_that_doesnt_exist'})
+        response = app.put('/api/1/walls/2/acl', params=body, status=400)
+        self.assertEqual(response.status_int, 400)

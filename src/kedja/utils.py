@@ -42,3 +42,11 @@ def get_acl(name='', registry=None):
     if registry is None:
         registry = get_current_registry()
     return registry.getUtility(INamedACL, name=name)
+
+
+def get_valid_acls(resource, registry=None):
+    if registry is None:
+        registry = get_current_registry()
+    for acl in registry.getAllUtilitiesRegisteredFor(INamedACL):
+        if acl.usable_for(resource):
+            yield acl
