@@ -5,6 +5,9 @@ import pytz
 from pyramid.threadlocal import get_current_registry
 from redis import StrictRedis
 
+from kedja.interfaces import INamedACL
+from kedja.interfaces import IRole
+
 
 def utcnow():
     return pytz.utc.localize(datetime.utcnow())
@@ -27,3 +30,15 @@ def get_redis_conn(registry=None):
 
 def _redis_conn_rm(request):
     return get_redis_conn(request.registry)
+
+
+def get_role(name='', registry=None):
+    if registry is None:
+        registry = get_current_registry()
+    return registry.getUtility(IRole, name=str(name))
+
+
+def get_acl(name='', registry=None):
+    if registry is None:
+        registry = get_current_registry()
+    return registry.getUtility(INamedACL, name=name)

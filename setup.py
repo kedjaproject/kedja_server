@@ -64,5 +64,8 @@ setup(
         'paste.app_factory': [
             'main = kedja:main',
         ],
+        'console_scripts': [
+            'kprintacl = kedja.scripts:print_acl',
+        ]
     },
 )

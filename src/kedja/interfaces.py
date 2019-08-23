@@ -104,3 +104,7 @@ class ISecurityAware(Interface):
 
 class INamedACL(Interface):
     pass
+
+
+class IRole(Interface):
+    pass

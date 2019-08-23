@@ -1,12 +1,28 @@
-from kedja.models.acl import NamedACL
 from pyramid import security as psec
 from pyramid.security import ALL_PERMISSIONS
+from pyramid.security import Everyone
+from pyramid.security import Authenticated
 
+from kedja.models.acl import NamedACL
 from kedja.models.acl import Role
 from kedja import _
 
 
-## The different roles within Kedja
+# Pyramid default roles
+SYSTEM_EVERYONE = Role(
+    Everyone,
+    title=_("Everyone"),
+    description=_("Use with caution.")
+)
+
+
+SYSTEM_AUTHENTICATED = Role(
+    Authenticated,
+    title=_("Authenticated users"),
+    description=_("Anyone who has logged in.")
+)
+
+# The different roles within Kedja
 
 INSTANCE_ADMIN = Role(
     'ia',
@@ -53,7 +69,6 @@ GUEST = Role(
 
 # Also note Pyramids Everyone and Authenticated
 
-
 def default_acl(config):
     from kedja.resources.card import CardPerms
     from kedja.resources.collection import CollectionPerms
@@ -93,3 +108,13 @@ def default_acl(config):
     config.add_acl(private_wall)
     config.add_acl(public_wall)
     config.add_acl(user)
+
+
+def includeme(config):
+    config.add_role(SYSTEM_EVERYONE)
+    config.add_role(SYSTEM_AUTHENTICATED)
+    config.add_role(INSTANCE_ADMIN)
+    config.add_role(PERSONAL)
+    config.add_role(WALL_OWNER)
+    config.add_role(COLLABORATOR)
+    config.add_role(GUEST)

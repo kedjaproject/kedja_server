@@ -67,4 +67,5 @@ def includeme(config):
     config.include('.config')
     config.include('.models')
     config.include('.resources')
+    config.include('.security')
     config.include('.security.default_acl')
