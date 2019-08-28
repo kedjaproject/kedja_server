@@ -2,14 +2,13 @@ from unittest import TestCase
 
 from arche.authentication.models import StaticAuthenticationPolicy
 from arche.content import ContentType
-from kedja.interfaces import ISecurityAware
-from kedja.testing import get_settings, TestingAuthenticationPolicy
 from pyramid import testing
-from pyramid.request import apply_request_extensions
-
-
+from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import ALL_PERMISSIONS, remember, Everyone, Deny, Allow, DENY_ALL
 from zope.interface.verify import verifyObject
+
+from kedja.interfaces import ISecurityAware
+from kedja.testing import get_settings, TestingAuthenticationPolicy
 
 
 class SecurityAwareMixinTests(TestCase):
@@ -175,6 +174,62 @@ class SecurityAwareMixinTests(TestCase):
         self.assertTrue(request.has_permission('comment', parent))
         self.assertTrue(request.has_permission('view', parent))
         self.assertFalse(request.has_permission('edit', parent))
+
+    def test_get_simplified_permissions(self):
+        parent = self._fixture()
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='1'))
+        request = testing.DummyRequest()
+        self.config.begin(request)
+        response = parent.get_simplified_permissions(request)
+        # Handle lists
+        response['allowed'] = set(response['allowed'])
+        response['denied'] = set(response['denied'])
+        self.assertEqual(
+            {'all_other_allowed': False,
+             'allowed': {'edit', 'view', 'delete', 'comment'},
+             'denied': set()},
+            response
+        )
+
+    def test_get_simplified_permissions_with_deny(self):
+        parent = self._fixture()
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='1'))
+        request = testing.DummyRequest()
+        self.config.begin(request)
+        acl = parent.get_acl()
+        acl.insert(0, (Deny, 'Admin', ['Badness']))
+        response = parent.get_simplified_permissions(request)
+        # Handle lists
+        response['allowed'] = set(response['allowed'])
+        response['denied'] = set(response['denied'])
+        self.assertEqual(
+            {'all_other_allowed': False,
+             'allowed': {'edit', 'view', 'delete', 'comment'},
+             'denied': {'Badness'}},
+            response
+        )
+
+    def test_get_simplified_permissions_with_deny_and_allow_all(self):
+        parent = self._fixture()
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='1'))
+        request = testing.DummyRequest()
+        self.config.begin(request)
+        acl = parent.get_acl()
+        acl.insert(0, (Deny, 'Admin', ['Badness']))
+        acl.add_allow('Admin', ALL_PERMISSIONS)
+        response = parent.get_simplified_permissions(request)
+        # Handle lists
+        response['allowed'] = set(response['allowed'])
+        response['denied'] = set(response['denied'])
+        self.assertEqual(
+            {'all_other_allowed': True,
+             'allowed': {'edit', 'view', 'delete', 'comment'},
+             'denied': {'Badness'}},
+            response
+        )
 
 
 class SetRoleFromAuthenticatedTests(TestCase):

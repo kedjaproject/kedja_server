@@ -1,13 +1,15 @@
 from logging import getLogger
 
+from BTrees.LOBTree import LOBTree
+from BTrees.OOBTree import OOSet
 from arche.interfaces import IResourceAdded
 from pyramid.decorator import reify
 from pyramid.location import lineage
+from pyramid.security import ALL_PERMISSIONS
+from pyramid.security import Allow
 from pyramid.security import DENY_ALL
-
-from BTrees.LOBTree import LOBTree
-from BTrees.OOBTree import OOSet
-from pyramid.threadlocal import get_current_request, get_current_registry
+from pyramid.threadlocal import get_current_registry
+from pyramid.threadlocal import get_current_request
 from zope.interface import implementer
 
 from kedja.interfaces import INamedACL
@@ -92,6 +94,54 @@ class SecurityAwareMixin(object):
         else:
             logger.debug("%r returns acl %r", self, self.acl_name)
             return named_acl
+
+    def get_simplified_permissions(self, request):
+        """
+        :param request:
+        :return: dict
+
+        Returns an oversimplified expression of the ACL, basically stripping out ordering and similar.
+        The returned dict has 3 keys that represent the computed ACL. It's ment to be the human-readable version,
+        or at least the near-JSON-renderable.
+
+        'denied' - permissions that are explicitly denied.
+        'allowed' - permissions explicitly allowed. If 'all_other_allowed' is true and 'denied' empty this
+                    doesn't really have a function.
+        'all_other_allowed' - bool - is everything else allowed if it isn't explicitly forbidden?
+        """
+        allowed = set()
+        denied = set()
+        all_other_allowed = False
+        for ace in self.get_computed_acl([], request=request):
+            # Returns (Allow/Deny, Role/Userid, ALL_PERMISSIONS or a tuple of permissions) Example:
+            # (Allow, '1', ('Edit Wall', 'Make coffee'))
+            if ace[0] == Allow:
+                if ace[2] is ALL_PERMISSIONS:
+                    # Nothing else after this bit is relevant
+                    all_other_allowed = True
+                    break
+                for perm in ace[2]:
+                    if perm not in denied:
+                        # FIXME This is to catch roles and similar until we can really use Pyramids security
+                        # system that will be introduced in 2.0.
+                        # Until then traversal and permissions might not work.
+                        if request.has_permission(perm, self):
+                            allowed.add(perm)
+
+            else:  # Deny
+                if ace[2] is ALL_PERMISSIONS:
+                    # Nothing else after this bit is relevant
+                    break
+                for perm in ace[2]:
+                    if perm not in allowed:
+                        # FIXME: Same as with allowed, wait until Pyramid 2.0
+                        if not request.has_permission(perm, self):
+                            denied.add(perm)
+        return {
+            'allowed': list(allowed),
+            'denied': list(denied),
+            'all_other_allowed': all_other_allowed,
+        }
 
 
 def set_role_from_authenticated(event):
