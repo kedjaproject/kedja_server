@@ -56,10 +56,8 @@ from pyramid.view import view_config
 from kedja.interfaces import IAuthomatic
 from kedja.interfaces import IOneTimeAuthToken
 from kedja.interfaces import IOneTimeRegistrationToken
-from kedja.interfaces import ISecurityAware
 from kedja.models.credentials import get_valid_credentials
 from kedja.views.api.base import APIBase
-from kedja.views.api.base import ResourceAPISchema
 from kedja.views.base import BaseView
 
 
@@ -313,60 +311,6 @@ class AuthValidAPIView(APIBase):
                 'userid': None,
                 'valid_until': None
             }
-
-
-class AuthPermissionsBodyResponseSchema(colander.Schema):
-    allowed = colander.SchemaNode(
-        colander.Sequence(),
-        colander.SchemaNode(
-            colander.String(),
-            title="Permission",
-        ),
-        title="Explicitly allowed",
-        missing=[],
-    )
-    denied = colander.SchemaNode(
-        colander.Sequence(),
-        colander.SchemaNode(
-            colander.String(),
-            title="Permission",
-        ),
-        title="Explicitly denied",
-        missing=[],
-    )
-    all_other_allowed = colander.SchemaNode(
-        colander.Bool(),
-        title="Are all other permissions implicitly allowed?",
-        missing=False,
-    )
-
-
-class AuthPermissionsOKResponseSchema(colander.Schema):
-    title = "Valid response"
-    body = AuthPermissionsBodyResponseSchema()
-
-
-auth_permissions_response_schemas = {
-    '200': AuthPermissionsOKResponseSchema(description='Response params for simplified permissions lists'),
-}
-
-
-@resource(path='/api/1/auth/permissions/{rid}',
-          validators=(colander_validator,),
-          cors_origins=('*',),
-          tags=['Authentication'],
-          factory='kedja.root_factory',
-          response_schemas=auth_permissions_response_schemas)
-class AuthPermissionsAPIView(APIBase):
-    """ Check if an authentication is valid. """
-
-    @view(schema=ResourceAPISchema(),)
-    def get(self):
-        requested_resource = self.base_get(self.request.matchdict['rid'])
-        if requested_resource is not None:
-            for res in lineage(requested_resource):
-                if ISecurityAware.providedBy(res):
-                    return res.get_simplified_permissions(self.request)
 
 
 @resource(path='/api/1/auth/logout',

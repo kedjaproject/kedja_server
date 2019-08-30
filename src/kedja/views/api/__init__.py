@@ -7,5 +7,6 @@ def includeme(config):
     config.include('.export')
     config.include('.relations')
     config.include('.resource')
+    config.include('.security')
     config.include('.users')
     config.include('.walls')
