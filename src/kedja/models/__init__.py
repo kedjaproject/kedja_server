@@ -5,5 +5,4 @@ def includeme(config):
     config.include('.authomatic')
     config.include('.credentials')
     config.include('.relations')
-    config.include('.renderers')
 #    config.include('.cors')
