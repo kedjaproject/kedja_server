@@ -193,7 +193,8 @@ class FunctionalWallsAPITests(TestCase):
         apply_request_extensions(request)
         self._fixture(request)
         response = app.get('/api/1/walls/2', status=200)
-        self.assertEqual(response.json_body, {'data': {'title': ''}, 'rid': 2, 'type_name': 'Wall'})
+        self.assertEqual(response.json_body,
+                         {'data': {'title': '', 'acl_name': 'private_wall', 'relations': [],}, 'rid': 2, 'type_name': 'Wall'})
 
     def test_get_404(self):
         wsgiapp = self.config.make_wsgi_app()
@@ -211,7 +212,9 @@ class FunctionalWallsAPITests(TestCase):
         apply_request_extensions(request)
         self._fixture(request)
         response = app.put('/api/1/walls/2', params=dumps({'title': 'Hello world!'}), status=200)
-        self.assertEqual({"type_name": "Wall", "rid": 2, "data": {"title": "Hello world!"}}, response.json_body)
+        self.assertEqual({"type_name": "Wall", "rid": 2, "data":
+            {"title": "Hello world!", 'acl_name': 'private_wall', 'relations': []}},
+                         response.json_body)
 
     def test_put_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()
@@ -247,7 +250,8 @@ class FunctionalWallsAPITests(TestCase):
         apply_request_extensions(request)
         self._fixture(request)
         response = app.get('/api/1/walls', status=200)
-        self.assertEqual([{'data': {'title': ''}, 'rid': 2, 'type_name': 'Wall'}], response.json_body)
+        self.assertEqual([{'data': {'acl_name': 'private_wall', 'relations': [], 'title': ''}, 'rid': 2, 'type_name': 'Wall'}],
+                         response.json_body)
 
     def test_collection_post(self):
         wsgiapp = self.config.make_wsgi_app()
@@ -262,7 +266,8 @@ class FunctionalWallsAPITests(TestCase):
         keys.remove('wall')
         self.assertEqual(len(keys), 1)
         new_rid = int(keys[0])
-        self.assertEqual({'data': {'title': 'Hello world!'}, 'rid': new_rid, 'type_name': 'Wall'}, response.json_body)
+        self.assertEqual({'data': {'title': 'Hello world!', 'acl_name': 'private_wall', 'relations': []}, 'rid': new_rid, 'type_name': 'Wall'},
+                         response.json_body)
 
     def test_collection_post_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()

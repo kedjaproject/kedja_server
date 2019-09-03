@@ -62,7 +62,7 @@ class ExporterTests(TestCase):
                              'data': {'title': ''},
                              'rid': 3,
                              'type_name': 'Collection'}],
-              'data': {'title': ''},
+              'data': {'acl_name': 'private_wall', 'relations': [], 'title': ''},
               'rid': 2,
               'type_name': 'Wall'}]
             , data)

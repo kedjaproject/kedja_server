@@ -3,13 +3,14 @@ from unittest import TestCase
 from pyramid import testing
 from pyramid.request import apply_request_extensions
 from transaction import commit
+from yaml import safe_load
 from webtest import TestApp
 
 from kedja.testing import get_settings
 
 
 _expected = \
-"""- contained:
+safe_load("""- contained:
   - contained:
     - data:
         int_indicator: -1
@@ -71,10 +72,12 @@ _expected = \
     rid: 30
     type_name: Collection
   data:
+    acl_name: private_wall
+    relations: []
     title: ''
   rid: 2
   type_name: Wall
-"""
+""")
 
 
 class FunctionalWallExportAPIViewTests(TestCase):
@@ -110,4 +113,4 @@ class FunctionalWallExportAPIViewTests(TestCase):
         self.config.begin(request)
         self._fixture(request)
         response = app.get('/api/1/export/2', status=200)
-        self.assertEqual(response.json_body, _expected)
+        self.assertEqual(_expected, safe_load(response.body))

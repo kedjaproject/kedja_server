@@ -11,35 +11,8 @@ from kedja.interfaces import ICollection
 from kedja.interfaces import IWall
 
 
-# FIXME: Might be smarter to have these as resources
-class RelationJSON(object):
-
-    def __init__(self, relation_id, members=()):
-        self.relation_id = relation_id
-        self.members = list(members)
-
-    def __json__(self, request):
-        return self.asdict()
-
-    def __str__(self):
-        return str(self.asdict())
-
-    def __repr__(self):
-        return '<Relation %r with %r>' % (self.relation_id, self.members)
-
-    def asdict(self):
-        return {'relation_id': self.relation_id, 'members': self.members}
-
-    def __len__(self):
-        return len(self.members)
-
-    def __iter__(self):
-        return iter(self.asdict().items())
-
-    def __eq__(self, other):
-        if isinstance(other, RelationJSON):
-            return other.asdict() == self.asdict()
-        return other == self.asdict()
+def relation_dict(relation_id:int, members:list=()):
+    return {'relation_id': relation_id, 'members': list(members)}
 
 
 class RelationMap(Persistent):
@@ -76,6 +49,11 @@ class RelationMap(Persistent):
     def __contains__(self, relation_id:int):
         return relation_id in self.relation_to_rids
 
+    def clear(self):
+        """ Clear all relations. """
+        self.rid_to_relations.clear()
+        self.relation_to_rids.clear()
+
     def create(self, rids):
         relation_id = self.new_relation_id()
         self[relation_id] = rids
@@ -99,12 +77,24 @@ class RelationMap(Persistent):
     def get_as_json(self, relation_id, default=None):
         members = self.get(relation_id, None)
         if members is not None:
-            return RelationJSON(relation_id, members)
+            return relation_dict(relation_id, members)
         return default
 
     def get_all_as_json(self):
         for k in self.keys():
             yield self.get_as_json(k)
+
+    def set_all_from_json(self, value:list):
+        """ Set all relations at once, probably from an import.
+            Will clear existing relations!
+
+            value must be a list with dicts that have the same structure as returned via 'get_as_json'.
+        """
+        self.clear()
+        for item in value:
+            relation_id = item['relation_id']
+            members = item['members']
+            self[relation_id] = members
 
     def new_relation_id(self):
         """ Get an unused ID. It's not reserved in any way, so make sure to use it within the current transaction.

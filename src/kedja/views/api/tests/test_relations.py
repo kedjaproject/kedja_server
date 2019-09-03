@@ -1,7 +1,7 @@
 from json import dumps
 from unittest import TestCase
 
-from kedja.models.relations import RelationJSON
+from kedja.models.relations import relation_dict
 from kedja.testing import get_settings
 from pyramid import testing
 
@@ -44,8 +44,7 @@ class RelationsAPIViewTests(TestCase):
         request.matchdict['relation_id'] = 1
         inst = self._cut(request, context=root)
         response = inst.get()
-        self.assertIsInstance(response, RelationJSON)
-        self.assertEqual(dict(response), {'relation_id': 1, 'members': [10, 20]})
+        self.assertEqual(response, {'relation_id': 1, 'members': [10, 20]})
 
     def test_put(self):
         root = self._fixture()
@@ -77,7 +76,7 @@ class RelationsAPIViewTests(TestCase):
         request.matchdict['rid'] = 2
         inst = self._cut(request, context=root)
         response = inst.collection_get()
-        expected_item = RelationJSON(1, members=(10, 20))
+        expected_item = relation_dict(1, members=(10, 20))
         self.assertIn(expected_item, response)
 
     def test_collection_post(self):
@@ -88,10 +87,9 @@ class RelationsAPIViewTests(TestCase):
         apply_request_extensions(request)
         inst = self._cut(request, context=root)
         response = inst.collection_post()
-        self.assertIsInstance(response, RelationJSON)
         relmap = root['wall'].relations_map
         self.assertEqual(len(relmap), 1)
-        self.assertIn(response.relation_id, relmap)
+        self.assertIn(response['relation_id'], relmap)
 
 
 class FunctionalCollectionsAPITests(TestCase):
