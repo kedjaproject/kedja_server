@@ -2,6 +2,7 @@
 from datetime import datetime
 
 import pytz
+from pyramid.interfaces import INewRequest
 from pyramid.threadlocal import get_current_registry
 from redis import StrictRedis
 
@@ -50,3 +51,13 @@ def get_valid_acls(resource, registry=None):
     for acl in registry.getAllUtilitiesRegisteredFor(INamedACL):
         if acl.usable_for(resource):
             yield acl
+
+
+def inject_auth_header(config):
+
+    def inject_header_subscriber(event):
+        auth = event.request.params.get('Authorization', None)
+        if auth:
+            event.request.headers['Authorization'] = auth
+
+    config.add_subscriber(inject_header_subscriber, INewRequest)
