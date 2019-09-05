@@ -5,7 +5,8 @@ from pyramid.response import Response
 from slugify import slugify
 from yaml import safe_dump
 
-from kedja.models.exporter import export_structure
+from kedja.models.export_import import export_appstruct
+from kedja.models.export_import import export_structure
 from kedja.views.api.base import ResourceAPIBase
 from kedja.views.api.base import ResourceAPISchema
 
@@ -27,7 +28,8 @@ class ExportAPIView(ResourceAPIBase):
         if 'view' not in self.request.params:
             headers['Content-Disposition'] = "attachment; filename={}.yaml".format(fname)
         data = export_structure(resource, self.request)
-        out = safe_dump(data, default_flow_style=False)
+        appstruct = export_appstruct(data)
+        out = safe_dump(appstruct, default_flow_style=False)
         return Response(body=out, content_type = 'text/yaml', headers=headers)
 
 

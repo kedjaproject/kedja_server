@@ -108,3 +108,7 @@ class INamedACL(Interface):
 
 class IRole(Interface):
     pass
+
+
+class ITemplateFileUtil(Interface):
+    pass

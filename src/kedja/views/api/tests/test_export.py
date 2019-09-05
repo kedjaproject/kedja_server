@@ -9,84 +9,13 @@ from webtest import TestApp
 from kedja.testing import get_settings
 
 
-_expected = \
-safe_load("""- contained:
-  - contained:
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 101
-      type_name: Card
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 201
-      type_name: Card
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 301
-      type_name: Card
-    data:
-      title: ''
-    rid: 10
-    type_name: Collection
-  - contained:
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 102
-      type_name: Card
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 202
-      type_name: Card
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 302
-      type_name: Card
-    data:
-      title: ''
-    rid: 20
-    type_name: Collection
-  - contained:
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 103
-      type_name: Card
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 203
-      type_name: Card
-    - data:
-        int_indicator: -1
-        title: ''
-      rid: 303
-      type_name: Card
-    data:
-      title: ''
-    rid: 30
-    type_name: Collection
-  data:
-    acl_name: private_wall
-    relations: []
-    title: ''
-  rid: 2
-  type_name: Wall
-""")
-
-
 class FunctionalWallExportAPIViewTests(TestCase):
 
     def setUp(self):
         self.config = testing.setUp(settings=get_settings())
         self.config.include('kedja.testing')
         self.config.include('pyramid_tm')
-        self.config.include('kedja.views.api.export')
+        self.config.include('kedja.views.api.export_import')
         # FIXME: Actual test of security on export? :)
         self.config.testing_securitypolicy(permissive=True)
 
@@ -94,7 +23,7 @@ class FunctionalWallExportAPIViewTests(TestCase):
         from kedja import root_factory
         root = root_factory(request)
         content = self.config.registry.content
-        root['wall'] = wall = content('Wall', rid=2)
+        root['wall'] = wall = content('Wall', rid=2, title="Hello wall")
         results = {}
         for i in range(1, 4):
             wall['col%s' % i] = collection = content('Collection', rid=i*10)
@@ -103,7 +32,6 @@ class FunctionalWallExportAPIViewTests(TestCase):
                 collection['card%s' % j] = card = content('Card', rid=j*100+i)
                 results[card.rid] = card
         commit()
-        return {'resources': results}
 
     def test_get_no_security(self):
         wsgiapp = self.config.make_wsgi_app()
@@ -113,4 +41,8 @@ class FunctionalWallExportAPIViewTests(TestCase):
         self.config.begin(request)
         self._fixture(request)
         response = app.get('/api/1/export/2', status=200)
-        self.assertEqual(_expected, safe_load(response.body))
+        data = safe_load(response.body)
+        self.assertEqual(1, data['version'])
+        self.assertEqual("Hello wall", data['title'])
+        self.assertEqual(1, len(data['export']))  # The wall
+        self.assertEqual(3, len(data['export'][0]['contained']))  # The collections
