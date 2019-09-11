@@ -210,6 +210,7 @@ class FunctionalWallsAPITests(TestCase):
         app = TestApp(wsgiapp)
         request = testing.DummyRequest()
         apply_request_extensions(request)
+        self.config.begin(request)
         self._fixture(request)
         response = app.put('/api/1/walls/2', params=dumps({'title': 'Hello world!'}), status=200)
         self.assertEqual({"type_name": "Wall", "rid": 2, "data":

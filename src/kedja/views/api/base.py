@@ -2,12 +2,17 @@ from json import JSONDecodeError
 from logging import getLogger
 
 import colander
-from arche.content import EDIT, VIEW, DELETE
+from arche.content import VIEW
 from pyramid.decorator import reify
 from pyramid.traversal import find_root
 
 
 logger = getLogger(__name__)
+
+
+def add_error(request, msg="Doesn't exist", type='path', status=404):
+    request.errors.add(type, msg)
+    request.errors.status = status
 
 
 class APIBase(object):
@@ -35,8 +40,7 @@ class APIBase(object):
     def error(self, msg="Doesn't exist", type='path', status=404, request=None):
         if request is None:
             request = self.request
-        request.errors.add(type, msg)
-        request.errors.status = status
+        add_error(request, msg=msg, type=type, status=status)
 
     def get_json_appstruct(self):
         if not self.request.body:
@@ -56,12 +60,6 @@ class APIBase(object):
             return True
         self.error("The fetched resource is not a %r" % type_name, type='path', status=404)
         return False
-
-    def view_resource_validator(self, request, **kw):
-        context = self.base_get(request.matchdict['rid'])
-        if context is not None:
-            if not request.registry.content.has_permission_type(context, request, VIEW):
-                self.error("You're not allowed to view: %s" % context.rid, status=403)
 
     def base_get(self, rid, type_name=None):
         """ Get specific resource. Validate type_name if specified. """
@@ -120,6 +118,8 @@ class ResourceAPIBase(APIBase):
             elif getattr(x, 'type_name', object()) == type_name:
                 resources.append(x)
         results = []
+        # FIXME: This is really slow and needs to be cached. At least fetch things that we know could be okay,
+        # and then check
         for x in resources:
             if self.request.registry.content.has_permission_type(x, self.request, VIEW):
                 results.append(x)
@@ -138,18 +138,6 @@ class ResourceAPIBase(APIBase):
             changed = mutator.update(appstruct)
         # Log changed?
         return new_res
-
-    def edit_resource_validator(self, request, **kw):
-        context = self.base_get(request.matchdict['rid'])
-        if context is not None:
-            if not request.registry.content.has_permission_type(context, request, EDIT):
-                self.error("You're not allowed to edit: %s" % context.rid, status=403)
-
-    def delete_resource_validator(self, request, **kw):
-        context = self.base_get(request.matchdict['rid'])
-        if context is not None:
-            if not request.registry.content.has_permission_type(context, request, DELETE):
-                self.error("You're not allowed to delete: %s" % context.rid, status=403)
 
 
 class RIDPathSchema(colander.Schema):

@@ -6,6 +6,7 @@ from zope.interface import implementer
 
 from kedja.resources.json import JSONRenderable
 from kedja.interfaces import IRoot
+from kedja.permissions import MANAGE_TEMPLATES
 from kedja import _
 
 
@@ -33,7 +34,8 @@ class Root(Folder, JSONRenderable):
 
 
 RootContent = ContentType(factory=Root, schema=RootSchema, title=_("Root"))
-
+RootContent.add_permission_type(MANAGE_TEMPLATES)
+RootPerms = RootContent.permissions
 
 def includeme(config):
     config.add_content(RootContent)

@@ -20,3 +20,5 @@ VISIBILITY = 'Visibility'
 
 # Invite users
 INVITE = 'Invite'
+
+MANAGE_TEMPLATES = 'ManageTemplates'

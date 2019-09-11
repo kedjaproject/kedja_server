@@ -19,7 +19,8 @@ class FunctionalUsersAPITests(TestCase):
     def _fixture(self, request):
         from kedja import root_factory
         root = root_factory(request)
-        root['users']['10'] = user = request.registry.content('User', rid=10, first_name='Jeff')
+        root['users']['10'] = request.registry.content('User', rid=10, first_name='Jeff')
+        root['users']['11'] = request.registry.content('User', rid=11, first_name='Jane')
         cred = request.registry.content('Credentials', '10')
         cred.save()
         commit()
@@ -34,13 +35,22 @@ class FunctionalUsersAPITests(TestCase):
         response = app.get('/api/1/users/10', status=200, headers={'Authorization': cred.header()})
         self.assertEqual(response.json_body, {'data': {'first_name': 'Jeff'}, 'rid': 10, 'type_name': 'User'})
 
-    def test_get_403(self):
+    def test_get_401(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
         request = testing.DummyRequest()
         apply_request_extensions(request)
         self._fixture(request)
-        response = app.get('/api/1/users/10', status=403)
+        response = app.get('/api/1/users/10', status=401)
+        self.assertEqual(response.json_body.get('status', None), 'error')
+
+    def test_get_403(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        root, cred = self._fixture(request)
+        response = app.get('/api/1/users/11', status=403, headers={'Authorization': cred.header()})
         self.assertEqual(response.json_body.get('status', None), 'error')
 
     def test_get_404(self):

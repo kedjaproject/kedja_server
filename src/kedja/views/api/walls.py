@@ -8,6 +8,7 @@ from kedja.utils import get_valid_acls
 from kedja.views.api.base import BaseResponseAPISchema
 from kedja.views.api.base import ResourceAPISchema
 from kedja.views.api.base import ResourceAPIBase
+from kedja.views import validators
 from kedja import _
 
 
@@ -48,15 +49,15 @@ class WallsAPIView(ResourceAPIBase):
     type_name = 'Wall'
     parent_type_name = 'Root'
 
-    @view(schema=ResourceAPISchema(), validators=(colander_validator, 'view_resource_validator'))
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, validators.VIEW_RESOURCE))
     def get(self):
         return self.base_get(self.request.matchdict['rid'], type_name='Wall')
 
-    @view(schema=UpdateWallAPISchema(), validators=(colander_validator, 'edit_resource_validator'))
+    @view(schema=UpdateWallAPISchema(), validators=(colander_validator,  validators.EDIT_RESOURCE))
     def put(self):
         return self.base_put(self.request.matchdict['rid'], type_name='Wall')
 
-    @view(schema=ResourceAPISchema(), validators=(colander_validator, 'delete_resource_validator'))
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, validators.DELETE_RESOURCE))
     def delete(self):
         return self.base_delete(self.request.matchdict['rid'], type_name='Wall')
 
@@ -64,7 +65,7 @@ class WallsAPIView(ResourceAPIBase):
     def collection_get(self):
         return self.base_collection_get(self.context, type_name=self.type_name)
 
-    @view(schema=CreateWallSchema())
+    @view(schema=CreateWallSchema(), validators=(colander_validator, validators.ADD_WALL))
     def collection_post(self):
         return self.base_collection_post(self.type_name, parent_rid=1, parent_type_name=self.parent_type_name)
 
@@ -77,7 +78,7 @@ class WallsAPIView(ResourceAPIBase):
 class WallStructureAPIView(ResourceAPIBase):
     type_name = 'Wall'
 
-    @view(schema=ResourceAPISchema())
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, validators.VIEW_RESOURCE))
     def get(self):
         """
         Return a structure with all contained items. It has to be a list since we want to keep order.
@@ -115,7 +116,7 @@ class WallStructureAPIView(ResourceAPIBase):
 class WallContentAPIView(ResourceAPIBase):
     type_name = 'Wall'
 
-    @view(schema=ResourceAPISchema(), validators=(colander_validator, 'view_resource_validator'))
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, validators.VIEW_RESOURCE))
     def get(self):
         """ Get a structure with all of the content within this wall.
             It returns a dict where the resource ID is the key.
@@ -152,7 +153,7 @@ class WallACLResourceSchema(ResourceAPISchema):
 class WallACLAPIView(ResourceAPIBase):
     type_name = 'Wall'
 
-    @view(schema=ResourceAPISchema(), validators=(colander_validator, 'view_resource_validator'))
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, validators.VIEW_RESOURCE))
     def get(self):
         """ Get available ACLs and information about them
         """
@@ -163,7 +164,7 @@ class WallACLAPIView(ResourceAPIBase):
                 results.append(acl.details_for(wall))
             return results
 
-    @view(schema=WallACLResourceSchema(), validators=(colander_validator, 'edit_resource_validator'))
+    @view(schema=WallACLResourceSchema(), validators=(colander_validator, validators.EDIT_RESOURCE))
     def put(self):
         """ Set ACL policy to use
         """

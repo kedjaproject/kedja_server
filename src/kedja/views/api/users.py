@@ -1,4 +1,3 @@
-import colander
 from cornice.resource import resource
 from cornice.resource import view
 from cornice.validators import colander_validator
@@ -6,6 +5,7 @@ from cornice.validators import colander_validator
 from kedja.resources.user import UserSchema
 from kedja.views.api.base import ResourceAPISchema
 from kedja.views.api.base import ResourceAPIBase
+from kedja.views import validators
 
 
 class UpdateUserAPISchema(ResourceAPISchema):
@@ -28,19 +28,19 @@ class UsersAPIView(ResourceAPIBase):
     # def __acl__(self):
     #    return [(Allow, Everyone, 'everything')]
 
-    @view(schema=ResourceAPISchema(), validators=(colander_validator, 'view_resource_validator'))
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, validators.VIEW_RESOURCE))
     def get(self):
         return self.base_get(self.request.matchdict['rid'], type_name=self.type_name)
 
-    @view(schema=UpdateUserAPISchema(), validators=(colander_validator, 'edit_resource_validator'))
+    @view(schema=UpdateUserAPISchema(), validators=(colander_validator, validators.EDIT_RESOURCE))
     def put(self):
         return self.base_put(self.request.matchdict['rid'], type_name=self.type_name)
 
-    @view(schema=ResourceAPISchema(), validators=(colander_validator, 'delete_resource_validator'))
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, validators.DELETE_RESOURCE))
     def delete(self):
         return self.base_delete(self.request.matchdict['rid'], type_name=self.type_name)
 
-    @view(schema=None)
+    @view(schema=None, validators=(colander_validator, validators.VIEW_RESOURCE))
     def collection_get(self):
         return self.base_collection_get(self.context['users'], type_name=self.type_name)
 
