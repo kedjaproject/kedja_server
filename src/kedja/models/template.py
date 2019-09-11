@@ -70,8 +70,8 @@ def includeme(config):
             path.mkdir()
     else:
         if config.registry.package_name == 'testing':
-            logger.debug("'kedja.templates_dir' not present in configuration.")
             # Don't care about this during testing
+            logger.debug("'kedja.templates_dir' not present in configuration.")
             return
         raise ConfigurationError("'kedja.templates_dir' must exist in paster.ini file.")
 
