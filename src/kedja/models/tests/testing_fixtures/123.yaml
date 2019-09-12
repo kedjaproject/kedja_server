@@ -1,9 +1,9 @@
-created: 2019-09-04 08:06:40.215938+00:00
+id: 123
 title: En annan
 version: 1
-id: 123
+created: 2019-09-12 14:29:38.122806+00:00
 export:
-- contained:
+  contained:
   - contained:
     - data:
         int_indicator: -1

@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 
 from pyramid import testing
@@ -9,18 +10,31 @@ def _import_fixture(config):
     root = content('Root')
     return root
 
+def _export_fixture(config):
+    content = config.registry.content
+    root = content('Root')
+    root['wall'] = wall = content('Wall', rid=2)
+    wall['collection'] = collection = content('Collection', rid=3)
+    collection['card'] = content('Card', rid=4)
+    collection['card2'] = content('Card', rid=5)
+    return root
+
 
 # Use similar as exporter
-_data = {'contained': {'contained': {'data': {'int_indicator': -1,
-                                              'title': 'Hello from Card'},
-                                     'rid': 4,
-                                     'type_name': 'Card'},
-                       'data': {'title': ''},
-                       'rid': 3,
-                       'type_name': 'Collection'},
-         'data': {'title': ''},
-         'rid': 2,
-         'type_name': 'Wall'}
+_data = {'contained': [{'contained': [{'data': {'int_indicator': -1,
+                                                     'title': 'Hello from Card'},
+                                            'rid': 4,
+                                            'type_name': 'Card'},
+                                           {'data': {'int_indicator': -1,
+                                                     'title': ''},
+                                            'rid': 5,
+                                            'type_name': 'Card'}],
+                             'data': {'title': ''},
+                             'rid': 3,
+                             'type_name': 'Collection'}],
+              'data': {'acl_name': 'private_wall', 'relations': [], 'title': ''},
+              'rid': 2,
+              'type_name': 'Wall'}
 
 
 _data_single = {
@@ -53,7 +67,7 @@ class ImporterTests(TestCase):
         request = testing.DummyRequest()
         apply_request_extensions(request)
         self.config.begin(request)
-        self._fut(root, request, _data_single)
+        self._fut(root, request, _data_single, new_rids=False)
         self.assertIn('2', root)
         self.assertEqual(root['2'].title, 'Hello world')
         self.assertEqual(root['2'].rid, 2)
@@ -63,18 +77,43 @@ class ImporterTests(TestCase):
         request = testing.DummyRequest()
         apply_request_extensions(request)
         self.config.begin(request)
-        self._fut(root, request, _data)
+        self._fut(root, request, _data, new_rids=False)
         self.assertEqual(root['2']['3']['4'].title, "Hello from Card")
 
+    def test_dual_import_breaks(self):
+        root = _import_fixture(self.config)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        self._fut(root, request, _data_single, new_rids=False)
+        self.assertIn('2', root)
+        self.assertRaises(KeyError, self._fut, root, request, _data_single, new_rids=False)
 
-def _export_fixture(config):
-    content = config.registry.content
-    root = content('Root')
-    root['wall'] = wall = content('Wall', rid=2)
-    wall['collection'] = collection = content('Collection', rid=3)
-    collection['card'] = content('Card', rid=4)
-    collection['card2'] = content('Card', rid=5)
-    return root
+    def test_dual_import_with_new_rids(self):
+        root = _import_fixture(self.config)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        self._fut(root, request, _data_single, new_rids=False)
+        self.assertIn('2', root)
+        self.assertEqual(1, len(root))
+        self._fut(root, request, _data_single, new_rids=True)
+        self.assertEqual(2, len(root))
+
+    def test_import_complex_example_with_relations(self):
+        from kedja.models.template import TemplateFileUtil
+        here = os.path.abspath(os.path.dirname(__file__))
+        tpl_path = os.path.join(here, 'testing_fixtures')
+        self.config.registry.settings['kedja.templates_dir'] = tpl_path
+        root =_import_fixture(self.config)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        tpl_util = TemplateFileUtil(self.config.registry)
+        data = tpl_util.read_appstruct('123')
+        self._fut(root, request, data['export'], new_rids=False)
+        # Make sure it's possible to import the same structure twice and keep the relations
+        self._fut(root, request, data['export'], new_rids=True)
 
 
 class ExporterTests(TestCase):
@@ -102,17 +141,16 @@ class ExporterTests(TestCase):
         apply_request_extensions(request)
         self.config.begin(request)
         data = self._fut(card, request)
-        self.assertEqual([{'type_name': 'Card', 'rid': 4, 'data': {'int_indicator': -1, 'title': ''}}], data)
+        self.assertEqual({'type_name': 'Card', 'rid': 4, 'data': {'int_indicator': -1, 'title': ''}}, data)
 
     def test_export_resource_tree(self):
         root = _export_fixture(self.config)
-        card = root['wall']
         request = testing.DummyRequest()
         apply_request_extensions(request)
         self.config.begin(request)
-        data = self._fut(card, request)
+        data = self._fut(root['wall'], request)
         self.assertEqual(
-            [{'contained': [{'contained': [{'data': {'int_indicator': -1,
+            {'contained': [{'contained': [{'data': {'int_indicator': -1,
                                                      'title': ''},
                                             'rid': 4,
                                             'type_name': 'Card'},
@@ -125,5 +163,5 @@ class ExporterTests(TestCase):
                              'type_name': 'Collection'}],
               'data': {'acl_name': 'private_wall', 'relations': [], 'title': ''},
               'rid': 2,
-              'type_name': 'Wall'}]
+              'type_name': 'Wall'}
             , data)

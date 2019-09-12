@@ -44,5 +44,5 @@ class FunctionalWallExportAPIViewTests(TestCase):
         data = safe_load(response.body)
         self.assertEqual(1, data['version'])
         self.assertEqual("Hello wall", data['title'])
-        self.assertEqual(1, len(data['export']))  # The wall
-        self.assertEqual(3, len(data['export'][0]['contained']))  # The collections
+        self.assertEqual('Wall', data['export']['type_name'])  # The wall
+        self.assertEqual(3, len(data['export']['contained']))  # The collections
