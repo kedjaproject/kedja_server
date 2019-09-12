@@ -27,7 +27,7 @@ def get_settings():
     here = os.path.abspath(os.path.dirname(__file__))
     return {
         'zodbconn.uri': 'memory://',
-        'kedja.authomatic': os.path.join(here, 'views', 'api', 'tests', 'authomatic.yaml')
+        'kedja.authomatic': os.path.join(here, 'views', 'api', 'tests', 'testing_fixtures', 'authomatic.yaml')
     }
 
 
