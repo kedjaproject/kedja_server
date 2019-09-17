@@ -18,4 +18,4 @@ VIEW_USERS = HasPermissionType(permissions.VIEW, rget='get_users')
 ADD_WALL = HasPermissionType(permissions.ADD, rget='get_root', type_name='Wall')
 ADD_COLLECTION = HasPermissionType(permissions.ADD, type_name='Collection')
 ADD_CARD = HasPermissionType(permissions.ADD, type_name='Card')
-
+ADD_TEMPLATE = HasPermissionType(permissions.MANAGE_TEMPLATES, rget='get_root')

@@ -1,0 +1,81 @@
+id: 123
+title: Hello from template
+version: 1
+created: 2019-09-12 14:29:38.122806+00:00
+export:
+  contained:
+  - contained:
+    - data:
+        int_indicator: -1
+        title: "K\xE4ra du!"
+      rid: -5155785388155755
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: Nytt kort
+      rid: 6621347158491707
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: Nytt kort
+      rid: -3649262852382313
+      type_name: Card
+    data:
+      title: sdfsf
+    rid: -6069902823393929
+    type_name: Collection
+  - contained:
+    - data:
+        int_indicator: -1
+        title: Nytt kort
+      rid: -7344492726090020
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: Nytt kort
+      rid: 6842120221591211
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: Nytt kort
+      rid: 5185796509564367
+      type_name: Card
+    - data:
+        int_indicator: -1
+        title: Nytt kort
+      rid: -11022603392881
+      type_name: Card
+    data:
+      title: Ny samling
+    rid: -4975470735570356
+    type_name: Collection
+  data:
+    acl_name: private_wall
+    relations:
+    - members:
+      - 6621347158491707
+      - 6842120221591211
+      relation_id: -676815567232028
+    - members:
+      - -5155785388155755
+      - 6842120221591211
+      relation_id: -302312608335282
+    - members:
+      - -5155785388155755
+      - 5185796509564367
+      relation_id: 5267045789483324
+    - members:
+      - 6621347158491707
+      - -7344492726090020
+      relation_id: 5612251105666154
+    - members:
+      - 6621347158491707
+      - 5185796509564367
+      relation_id: 6649276945005945
+    - members:
+      - -5155785388155755
+      - -7344492726090020
+      relation_id: 7840484969578724
+    title: En annan
+  rid: -8919414590439634
+  type_name: Wall

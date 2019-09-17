@@ -53,6 +53,8 @@ def import_structure(context, request, data:dict, new_rids=True):
         - rid
         - data (a new dict to send to the mutator)
         - contained (a list of nested objects)
+
+        Note that the base of the import is a single object. Usually a wall.
     """
     if new_rids:
         data = deepcopy(data)
@@ -66,6 +68,7 @@ def import_structure(context, request, data:dict, new_rids=True):
         mutator.update(data['data'])
     for contained_data in data.get('contained', []):
         import_structure(new_resource, request, contained_data, new_rids=new_rids)
+    return new_resource
 
 
 def set_new_rids(rid_map, data:dict, mapping=None, relations=None):
