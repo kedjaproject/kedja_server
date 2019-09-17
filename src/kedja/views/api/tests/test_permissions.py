@@ -16,7 +16,7 @@ class FunctionalAuthPermissionAPITests(TestCase):
         self.config = testing.setUp(settings=get_settings())
         self.config.include('kedja.testing')
         self.config.include('kedja.security.default_acl')
-        self.config.include('kedja.views.api.security')
+        self.config.include('kedja.views.api.permissions')
 
     def _fixture(self, request):
         from kedja import root_factory
