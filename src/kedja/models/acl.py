@@ -1,14 +1,13 @@
 from collections import UserList
 from collections import UserString
 from logging import getLogger
-from typing import Collection
 
 from pyramid.security import Allow
 from pyramid.security import Deny
 from pyramid.security import Everyone
 from pyramid.security import Authenticated
 from pyramid.security import ALL_PERMISSIONS
-from zope.interface import implementer, Interface
+from zope.interface import implementer
 
 from kedja.interfaces import INamedACL, ISecurityAware
 from kedja.interfaces import IRole
@@ -19,7 +18,7 @@ logger = getLogger(__name__)
 @implementer(IRole)
 class Role(UserString):
 
-    def __init__(self, role_id: str, title: str = None, description: str = "", required: [Interface, Collection] = None):
+    def __init__(self, role_id: str, title: str = None, description: str = "", required = None):
         """
         :param role_id: Short-id of role
         :param title: Human-readable version
