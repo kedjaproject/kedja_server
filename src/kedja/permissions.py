@@ -21,4 +21,8 @@ VISIBILITY = 'Visibility'
 # Invite users
 INVITE = 'Invite'
 
+# Manage wall templates
 MANAGE_TEMPLATES = 'ManageTemplates'
+
+# Manage roles
+MANAGE_ROLES = 'ManageRoles'

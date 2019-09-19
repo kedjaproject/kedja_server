@@ -36,8 +36,8 @@ class FunctionalAuthPermissionAPITests(TestCase):
         self.config.begin(request)
         self._fixture(request)
         response = app.get('/api/1/permissions/22')
-        self.assertEqual({'all_other_allowed': False, 'allowed': [], 'denied': []},
-                         response.json_body)
+        self.assertEqual(False, response.json_body['all_other_allowed'])
+        self.assertNotIn('View:Wall', response.json_body['allowed'])
 
     def test_wall_owner(self):
         wsgiapp = self.config.make_wsgi_app()
@@ -69,4 +69,5 @@ class FunctionalAuthPermissionAPITests(TestCase):
         self.assertEqual(response.json_body['all_other_allowed'], False)
         self.assertEqual(response.json_body['denied'], [])
         # Change to set to make test sane
-        self.assertEqual(set(response.json_body['allowed']), {'Collection:View', 'Card:View', 'Wall:View'})
+        allowed = set(response.json_body['allowed'])
+        self.assertTrue({'Collection:View', 'Card:View', 'Wall:View'}.issubset(allowed))

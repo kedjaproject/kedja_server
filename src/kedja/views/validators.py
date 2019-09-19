@@ -12,6 +12,8 @@ DELETE_CONTAINED_RESOURCE = HasPermissionType(permissions.DELETE, match='subrid'
 EDIT_CONTAINED_RESOURCE = HasPermissionType(permissions.EDIT, match='subrid')
 VIEW_CONTAINED_RESOURCE = HasPermissionType(permissions.VIEW, match='subrid')
 
+MANAGE_ROLES = HasPermission(permissions.MANAGE_ROLES)
+
 # Special permissions that require some other context.
 # For instance adding something needs to know what kind of resource we want to add.
 VIEW_USERS = HasPermissionType(permissions.VIEW, rget='get_users')

@@ -84,10 +84,16 @@ def default_acl(config):
     from kedja.resources.card import CardPerms
     from kedja.resources.collection import CollectionPerms
     from kedja.resources.wall import WallPerms
+    from kedja.resources.root import RootPerms
     # These are permission categories
     from kedja.permissions import ADD, VIEW, EDIT, DELETE
 
     base_perm_types = [ADD, VIEW, EDIT, DELETE]
+
+    # Root
+    root_acl = NamedACL('root', title="Default Root ACL", required=IRoot)
+    root_acl.add_allow(INSTANCE_ADMIN, ALL_PERMISSIONS)
+    root_acl.add_allow(SYSTEM_EVERYONE, RootPerms[VIEW])
 
     # Private hidden walls
     private_wall = NamedACL('private_wall', title="Private wall",
@@ -119,6 +125,7 @@ def default_acl(config):
     user.add_allow(INSTANCE_ADMIN, ALL_PERMISSIONS)
 
     # Register ACLs
+    config.add_acl(root_acl)
     config.add_acl(private_wall)
     config.add_acl(public_wall)
     config.add_acl(user)

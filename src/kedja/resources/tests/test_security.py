@@ -114,6 +114,16 @@ class SecurityAwareMixinTests(TestCase):
         self.assertEqual(set(), obj.get_roles(1))
         obj.remove_user_roles(1, 'c', 'd')
 
+    def test_remove_all_user_roles(self):
+        self.config.include('kedja.config')
+        obj = self._resource()
+        self.assertEqual(set(), obj.get_roles(1))
+        self.config.add_role(self._Role('a'))
+        obj.add_user_roles(1, 'a')
+        self.assertEqual({'a'}, obj.get_roles(1))
+        obj.remove_user_roles(1, 'a')
+        self.assertEqual(set(), obj.get_roles(1))
+
     def test_get_computed_acl(self):
         self.config.include('kedja.config')
         self.config.add_role(self._Role('role'))
@@ -124,6 +134,8 @@ class SecurityAwareMixinTests(TestCase):
         request = testing.DummyRequest()
         obj.add_user_roles(1, 'role')
         self.assertEqual([(Deny, Everyone, ALL_PERMISSIONS)], list(obj.get_computed_acl(['2'], request)))
+        # As string too
+        self.assertEqual([(Deny, Everyone, ALL_PERMISSIONS)], list(obj.get_computed_acl('2', request)))
         self.assertEqual(
             [(Allow, '1', ('perm-one', 'perm-two')), (Deny, Everyone, ALL_PERMISSIONS)],
             list(obj.get_computed_acl(['1'], request))

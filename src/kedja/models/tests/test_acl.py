@@ -2,6 +2,18 @@ from unittest import TestCase
 
 from pyramid import testing
 from pyramid.security import Allow, Deny, Everyone, Authenticated, ALL_PERMISSIONS
+from zope.interface import Interface, implementer
+
+from kedja.interfaces import IRoot
+
+
+class IDummyResource(Interface):
+    pass
+
+
+@implementer(IDummyResource)
+class DummyResource(testing.DummyResource):
+    pass
 
 
 class NamedACLTests(TestCase):
@@ -76,3 +88,63 @@ class NamedACLTests(TestCase):
         mapping = {'1': [manager]}
         self.assertEqual(list(acl.get_translated_acl(mapping)),
                          [('Allow', '1', ALL_PERMISSIONS)])
+
+    def test_required_as_none(self):
+        acl = self._cut('Batman')
+        self.assertTrue(acl.usable_for(object()))
+        self.assertTrue(acl.usable_for(None))
+
+    def test_required_as_iface(self):
+        acl = self._cut('Batman', required=IDummyResource)
+        self.assertFalse(acl.usable_for(object()))
+        dummy = DummyResource()
+        self.assertTrue(acl.usable_for(dummy))
+
+    def test_required_as_list(self):
+        acl = self._cut('Batman', required=[IRoot, IDummyResource])
+        self.assertFalse(acl.usable_for(object()))
+        dummy = DummyResource()
+        self.assertTrue(acl.usable_for(dummy))
+
+    def test_required_as_empty_list(self):
+        acl = self._cut('Batman', required=[])
+        self.assertFalse(acl.usable_for(object()))
+        dummy = DummyResource()
+        self.assertFalse(acl.usable_for(dummy))
+
+
+class RoleTests(TestCase):
+
+    def setUp(self):
+        self.config = testing.setUp()
+
+    def tearDown(self):
+        testing.tearDown()
+
+    @property
+    def _cut(self):
+        from kedja.models.acl import Role
+        return Role
+
+    def test_required_as_none(self):
+        role = self._cut('Batman')
+        self.assertTrue(role.assignable(object()))
+        self.assertTrue(role.assignable(None))
+
+    def test_required_as_iface(self):
+        role = self._cut('Batman', required=IDummyResource)
+        self.assertFalse(role.assignable(object()))
+        dummy = DummyResource()
+        self.assertTrue(role.assignable(dummy))
+
+    def test_required_as_list(self):
+        role = self._cut('Batman', required=[IRoot, IDummyResource])
+        self.assertFalse(role.assignable(object()))
+        dummy = DummyResource()
+        self.assertTrue(role.assignable(dummy))
+
+    def test_required_as_empty_list(self):
+        role = self._cut('Batman', required=[])
+        self.assertFalse(role.assignable(object()))
+        dummy = DummyResource()
+        self.assertFalse(role.assignable(dummy))

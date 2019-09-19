@@ -5,8 +5,10 @@ from arche.objectmap.rid_map import ResourceIDMap
 from zope.interface import implementer
 
 from kedja.resources.json import JSONRenderable
+from kedja.resources.security import SecurityAwareMixin
 from kedja.interfaces import IRoot
 from kedja.permissions import MANAGE_TEMPLATES
+from kedja.permissions import MANAGE_ROLES
 from kedja import _
 
 
@@ -23,8 +25,9 @@ class RootSchema(colander.Schema):
         pass
 
 @implementer(IRoot)
-class Root(Folder, JSONRenderable):
+class Root(Folder, JSONRenderable, SecurityAwareMixin):
     """ Application root - created once. """
+    acl_name = 'root'
     title = ""
 
     def __init__(self):
@@ -35,6 +38,7 @@ class Root(Folder, JSONRenderable):
 
 RootContent = ContentType(factory=Root, schema=RootSchema, title=_("Root"))
 RootContent.add_permission_type(MANAGE_TEMPLATES)
+RootContent.add_permission_type(MANAGE_ROLES)
 RootPerms = RootContent.permissions
 
 def includeme(config):

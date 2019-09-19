@@ -35,11 +35,11 @@ class Role(UserString):
             title = "role: %s" % role_id
         self.title = title
         self.description = description
-        if hasattr(required, 'providedBy'):
+        if _is_interface(required):
             required = set([required])
         elif required is not None:
             for item in required:
-                assert hasattr(item, 'providedBy'), "Must be an Interface"
+                assert _is_interface(item), "Must be an Interface"
             required = set(required)
         self.required = required
 
@@ -65,7 +65,7 @@ class NamedACL(UserList):
         self.name = name
         self.title = title
         self.description = description
-        if self.required is not None:
+        if required is not None:
             self.add_required(required)
         super().__init__()
 
@@ -103,9 +103,9 @@ class NamedACL(UserList):
         """
         if self.required is None:
             self.required = set()
-        if Interface.providedBy(ifaces):
+        if _is_interface(ifaces):
             ifaces = [ifaces]
-        self.required.extend(ifaces)
+        self.required.update(ifaces)
 
     def usable_for(self, resource):
         """ Check if this ACL can be used for 'resource'. """
@@ -125,3 +125,8 @@ class NamedACL(UserList):
             'title': self.title,
             'description': self.description,
         }
+
+
+def _is_interface(iface):
+    # FIXME: This is not the best way to check if something is an interface. Why doesn't the regular class checks work...?
+    return hasattr(iface, 'providedBy')

@@ -13,6 +13,7 @@ from kedja.resources.security import SecurityAwareMixin
 from kedja.security import WALL_OWNER
 from kedja.permissions import INVITE
 from kedja.permissions import VISIBILITY
+from kedja.permissions import MANAGE_ROLES
 
 
 class RelationSchema(colander.Schema):
@@ -77,6 +78,7 @@ class Wall(Folder, JSONRenderable, SecurityAwareMixin):
 WallContent = ContentType(factory=Wall, schema=WallSchema, title=_("Wall"), ownership_role=WALL_OWNER)
 WallContent.add_permission_type(INVITE)
 WallContent.add_permission_type(VISIBILITY)
+WallContent.add_permission_type(MANAGE_ROLES)
 WallPerms = WallContent.permissions
 
 
