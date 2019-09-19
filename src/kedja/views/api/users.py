@@ -40,7 +40,7 @@ class UsersAPIView(ResourceAPIBase):
     def delete(self):
         return self.base_delete(self.request.matchdict['rid'], type_name=self.type_name)
 
-    @view(schema=None, validators=(colander_validator, validators.VIEW_RESOURCE))
+    @view(schema=None, validators=(colander_validator, validators.VIEW_USERS))
     def collection_get(self):
         return self.base_collection_get(self.context['users'], type_name=self.type_name)
 
