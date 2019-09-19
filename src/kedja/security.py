@@ -107,9 +107,9 @@ def default_acl(config):
                            description="Publicly accessible",
                            required=IWall)
     public_wall.extend(private_wall)
-    public_wall.add_allow(psec.Everyone, CardPerms[VIEW])
-    public_wall.add_allow(psec.Everyone, CollectionPerms[VIEW])
-    public_wall.add_allow(psec.Everyone, WallPerms[VIEW])
+    public_wall.add_allow(SYSTEM_EVERYONE, CardPerms[VIEW])
+    public_wall.add_allow(SYSTEM_EVERYONE, CollectionPerms[VIEW])
+    public_wall.add_allow(SYSTEM_EVERYONE, WallPerms[VIEW])
 
     # User acl
     user = NamedACL('user', title="User  ACL",
