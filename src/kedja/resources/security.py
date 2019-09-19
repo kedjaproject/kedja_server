@@ -12,8 +12,11 @@ from pyramid.threadlocal import get_current_registry
 from pyramid.threadlocal import get_current_request
 from zope.interface import implementer
 
+from kedja.exceptions import RoleNotAllowedHere
 from kedja.interfaces import INamedACL
+from kedja.interfaces import IRole
 from kedja.interfaces import ISecurityAware
+from kedja.utils import get_role
 
 
 logger = getLogger(__name__)
@@ -28,13 +31,26 @@ class SecurityAwareMixin(object):
     def _rolesdata(self):
         return LOBTree()
 
+    def _check_roles(self, *roles):
+        checked_roles = set()
+        for role in roles:
+            if not IRole.providedBy(role):
+                # This will cause ComponentLookupError in case of trouble
+                role = get_role(role)
+            if role.assignable(self):
+                checked_roles.add(role)
+            else:
+                raise RoleNotAllowedHere()
+        return checked_roles
+
     def add_user_roles(self, userid:str, *roles):
         """ See kedja.interfaces.ISecurityAware """
         if isinstance(userid, str):
             userid = int(userid)
+        checked_roles = self._check_roles(*roles)
         if userid not in self._rolesdata:
             self._rolesdata[userid] = OOSet()
-        self._rolesdata[userid].update(roles)
+        self._rolesdata[userid].update(checked_roles)
 
     def remove_user_roles(self, userid:str, *roles):
         """ See kedja.interfaces.ISecurityAware """
@@ -43,6 +59,7 @@ class SecurityAwareMixin(object):
         if userid not in self._rolesdata:
             return
         storage = self._rolesdata[userid]
+        # We don't care about type check here since trying to remove roles that don't exist isn't dangerous :)
         for k in roles:
             if k in storage:
                 storage.remove(k)

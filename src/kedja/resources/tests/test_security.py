@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from arche.authentication.models import StaticAuthenticationPolicy
 from arche.content import ContentType
+from kedja.exceptions import RoleNotAllowedHere
 from pyramid import testing
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import ALL_PERMISSIONS, remember, Everyone, Deny, Allow, DENY_ALL
@@ -34,8 +35,21 @@ class SecurityAwareMixinTests(TestCase):
         from kedja.models.acl import NamedACL
         return NamedACL
 
+    @property
+    def _Role(self):
+        from kedja.models.acl import Role
+        return Role
+
     def _fixture(self):
         self.config.include('kedja.config')
+
+        # Roles
+        ADMIN = self._Role('Admin')
+        USER = self._Role('User')
+        OWNER = self._Role('Owner')
+        self.config.add_role(ADMIN)
+        self.config.add_role(USER)
+        self.config.add_role(OWNER)
 
         # ACL fixture
         parent_acl = self._named_acl('parent')
@@ -62,6 +76,11 @@ class SecurityAwareMixinTests(TestCase):
         self.failUnless(verifyObject(ISecurityAware, resource))
 
     def test_add_user_roles(self):
+        self.config.include('kedja.config')
+        self.config.add_role(self._Role('a'))
+        self.config.add_role(self._Role('b'))
+        self.config.add_role(self._Role('c'))
+        self.config.add_role(self._Role('d'))
         obj = self._resource()
         self.assertEqual(set(), obj.get_roles(1))
         obj.add_user_roles(1, 'a', 'b', 'c')
@@ -69,9 +88,20 @@ class SecurityAwareMixinTests(TestCase):
         obj.add_user_roles('1', 'c', 'd')
         self.assertEqual({'a', 'b', 'c', 'd'}, obj.get_roles(1))
 
-    def test_remove_user_roles(self):
+    def test_add_user_roles_not_allowed_in_context(self):
+        self.config.include('kedja.config')
+        self.config.add_role(self._Role('NotHere', required=[]))
         obj = self._resource()
         self.assertEqual(set(), obj.get_roles(1))
+        self.assertRaises(RoleNotAllowedHere, obj.add_user_roles, 1, 'NotHere')
+
+    def test_remove_user_roles(self):
+        self.config.include('kedja.config')
+        obj = self._resource()
+        self.assertEqual(set(), obj.get_roles(1))
+        self.config.add_role(self._Role('a'))
+        self.config.add_role(self._Role('b'))
+        self.config.add_role(self._Role('c'))
         obj.add_user_roles(1, 'a', 'b', 'c')
         self.assertEqual({'a', 'b', 'c'}, obj.get_roles(1))
         obj.remove_user_roles(1, 'c', 'd')
@@ -86,6 +116,7 @@ class SecurityAwareMixinTests(TestCase):
 
     def test_get_computed_acl(self):
         self.config.include('kedja.config')
+        self.config.add_role(self._Role('role'))
         named_acl = self._named_acl('test_acl')
         named_acl.add_allow('role', ['perm-one', 'perm-two'])
         self.config.add_acl(named_acl)
@@ -253,7 +284,10 @@ class SetRoleFromAuthenticatedTests(TestCase):
         return DummySecurityAware
 
     def test_set_role_from_authenticated(self):
-        ct = ContentType(self._resource, ownership_role='SomeRole')
+        from kedja.models.acl import Role
+        role = Role('SomeRole')
+        self.config.add_role(role)
+        ct = ContentType(self._resource, ownership_role=role)
         self.config.add_content(ct)
         self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='10'))
         request = testing.DummyRequest()

@@ -5,8 +5,10 @@ from pyramid.security import Authenticated
 
 from kedja.interfaces import IWall
 from kedja.interfaces import IUser
+from kedja.interfaces import IRoot
 from kedja.models.acl import NamedACL
 from kedja.models.acl import Role
+
 from kedja import _
 
 
@@ -14,14 +16,16 @@ from kedja import _
 SYSTEM_EVERYONE = Role(
     Everyone,
     title=_("Everyone"),
-    description=_("Use with caution.")
+    description=_("Use with caution."),
+    required=(),
 )
 
 
 SYSTEM_AUTHENTICATED = Role(
     Authenticated,
     title=_("Authenticated users"),
-    description=_("Anyone who has logged in.")
+    description=_("Anyone who has logged in."),
+    required=(),
 )
 
 # The different roles within Kedja
@@ -29,7 +33,8 @@ SYSTEM_AUTHENTICATED = Role(
 INSTANCE_ADMIN = Role(
     'ia',
     title=_("Instance admin"),
-    description=_("Super admin for the whole instance")
+    description=_("Super admin for the whole instance"),
+    required=IRoot
 )
 
 
@@ -44,28 +49,32 @@ INSTANCE_ADMIN = Role(
 PERSONAL = Role(
     'pe',
     title=_("Personal"),
-    description=_("About yourself that you should always be albe to access.")
+    description=_("About yourself that you should always be albe to access."),
+    required=IUser,
 )
 
 
 WALL_OWNER = Role(
     'wo',
     title=_("Wall owner"),
-    description=_("Owner(s) of a wall")
+    description=_("Owner(s) of a wall"),
+    required=IWall,
 )
 
 
 COLLABORATOR = Role(
     'co',
     title=_("Collaborator"),
-    description=_("Can edit basic things within the wall")
+    description=_("Can edit basic things within the wall"),
+    required=IWall,
 )
 
 
 GUEST = Role(
     'gu',
     title=_("Guest"),
-    description=_("Can view a private wall")
+    description=_("Can view a private wall"),
+    required=IWall,
 )
 
 

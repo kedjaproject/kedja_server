@@ -1,6 +1,7 @@
 from collections import UserList
 from collections import UserString
 from logging import getLogger
+from typing import Collection
 
 from pyramid.security import Allow
 from pyramid.security import Deny
@@ -18,12 +19,37 @@ logger = getLogger(__name__)
 @implementer(IRole)
 class Role(UserString):
 
-    def __init__(self, role_id: str, title: str = None, description: str = ""):
+    def __init__(self, role_id: str, title: str = None, description: str = "", required: [Interface, Collection] = None):
+        """
+        :param role_id: Short-id of role
+        :param title: Human-readable version
+        :param description: If needed
+        :param required:
+            Specify when this role is only assignable to a resource that must implement any of the required interfaces.
+            None means no restriction.
+            Any empty list means never allowed.
+
+        """
         super().__init__(role_id)
         if title is None:
             title = "role: %s" % role_id
         self.title = title
         self.description = description
+        if hasattr(required, 'providedBy'):
+            required = set([required])
+        elif required is not None:
+            for item in required:
+                assert hasattr(item, 'providedBy'), "Must be an Interface"
+            required = set(required)
+        self.required = required
+
+    def assignable(self, resource):
+        if self.required is None:
+            return True
+        for required in self.required:
+            if required.providedBy(resource):
+                return True
+        return False
 
 
 @implementer(INamedACL)
