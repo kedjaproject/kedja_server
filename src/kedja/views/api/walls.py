@@ -2,6 +2,8 @@ import colander
 from cornice.resource import resource
 from cornice.resource import view
 from cornice.validators import colander_validator
+from kedja.interfaces import IWall
+from kedja.permissions import VIEW
 
 from kedja.resources.wall import WallSchema
 from kedja.utils import get_valid_acls
@@ -61,9 +63,16 @@ class WallsAPIView(ResourceAPIBase):
     def delete(self):
         return self.base_delete(self.request.matchdict['rid'], type_name='Wall')
 
+    def _get_walls(self):
+        for obj in self.context.values():
+            if IWall.providedBy(obj) and \
+                bool(obj.get_roles(self.request.authenticated_userid)) and \
+                    self.request.registry.content.has_permission_type(obj, self.request, VIEW):
+                yield obj
+
     @view(schema=None)
     def collection_get(self):
-        return self.base_collection_get(self.context, type_name=self.type_name)
+        return list(self._get_walls())
 
     @view(schema=CreateWallSchema(), validators=(colander_validator, validators.ADD_WALL))
     def collection_post(self):

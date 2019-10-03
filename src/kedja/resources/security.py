@@ -67,7 +67,9 @@ class SecurityAwareMixin(object):
             del self._rolesdata[userid]
 
     def get_roles(self, userid):
-        return set(self._rolesdata.get(int(userid), ()))
+        if userid:
+            return set(self._rolesdata.get(int(userid), ()))
+        return set()
 
     def get_roles_map(self, userids):
         """ See kedja.interfaces.ISecurityAware """

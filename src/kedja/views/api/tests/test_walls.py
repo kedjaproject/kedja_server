@@ -1,6 +1,7 @@
 from json import dumps, loads
 from unittest import TestCase
 
+from kedja.security import WALL_OWNER
 from kedja.testing import get_settings
 from pyramid import testing
 from pyramid.renderers import render
@@ -19,6 +20,7 @@ class WallsAPIViewTests(TestCase):
         self.config.include('kedja.testing.minimal')
         self.config.include('kedja.resources.root')
         self.config.include('kedja.resources.wall')
+        self.config.testing_securitypolicy(permissive=True, userid='100')
 
     def tearDown(self):
         testing.tearDown()
@@ -31,7 +33,8 @@ class WallsAPIViewTests(TestCase):
     def _fixture(self):
         content = self.config.registry.content
         root = content('Root')
-        root['wall'] = content('Wall', rid=2)
+        root['wall'] = wall = content('Wall', rid=2)
+        wall.add_user_roles('100', WALL_OWNER)
         return root
 
     def test_get(self):
@@ -66,9 +69,9 @@ class WallsAPIViewTests(TestCase):
         self.assertNotIn('wall', root)
 
     def test_collection_get(self):
-        root = self._fixture()
         request = testing.DummyRequest()
         apply_request_extensions(request)
+        root = self._fixture()
         inst = self._cut(request, context=root)
         response = inst.collection_get()
         self.assertIsInstance(response, list)
@@ -177,7 +180,7 @@ class FunctionalWallsAPITests(TestCase):
         self.config.include('kedja.testing')
         self.config.include('pyramid_tm')
         self.config.include('kedja.views.api.walls')
-        self.config.testing_securitypolicy(permissive=True)
+        self.config.testing_securitypolicy(permissive=True, userid='100')
 
     def _fixture(self, request):
         from kedja import root_factory
@@ -249,6 +252,7 @@ class FunctionalWallsAPITests(TestCase):
         app = TestApp(wsgiapp)
         request = testing.DummyRequest()
         apply_request_extensions(request)
+        self.config.begin(request)
         self._fixture(request)
         response = app.get('/api/1/walls', status=200)
         self.assertEqual([{'data': {'acl_name': 'private_wall', 'relations': [], 'title': ''}, 'rid': 2, 'type_name': 'Wall'}],
