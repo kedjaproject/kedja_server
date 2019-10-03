@@ -94,6 +94,7 @@ def default_acl(config):
     root_acl = NamedACL('root', title="Default Root ACL", required=IRoot)
     root_acl.add_allow(INSTANCE_ADMIN, ALL_PERMISSIONS)
     root_acl.add_allow(SYSTEM_EVERYONE, RootPerms[VIEW])
+    root_acl.add_allow(SYSTEM_AUTHENTICATED, WallPerms[ADD])
 
     # Private hidden walls
     private_wall = NamedACL('private_wall', title="Private wall",
