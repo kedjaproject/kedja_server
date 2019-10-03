@@ -41,7 +41,7 @@ class TemplatesAPIView(APIBase):
     def tpl_util(self):
         return self.request.registry.getUtility(ITemplateFileUtil)
 
-    @view(schema=None, validators=(colander_validator, 'validate_template_id',))
+    @view(schema=None, validators=(colander_validator, 'validate_template_id'))  # FIXME: permission to read templates?
     def get(self):
         return self.tpl_util.read_appstruct(self.request.matchdict['template_id'])
 
@@ -57,7 +57,7 @@ class TemplatesAPIView(APIBase):
 #    def delete(self):
 #        pass
 
-    @view(schema=None)
+    @view(schema=None)  # FIXME: permission to read templates?
     def collection_get(self):
         """ Return all appstructs, but remove the actual export data since this is ment for listings.
         """

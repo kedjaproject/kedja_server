@@ -54,7 +54,7 @@ permissions_response_schemas = {
 class PermissionsAPIView(APIBase):
     """ Return a dict of permissions, simplified. """
 
-    @view(schema=ResourceAPISchema(),)
+    @view(schema=ResourceAPISchema(),)  # No permission validator here
     def get(self):
         requested_resource = self.base_get(self.request.matchdict['rid'])
         if requested_resource is not None:
