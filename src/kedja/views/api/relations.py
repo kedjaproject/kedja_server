@@ -4,6 +4,7 @@ from cornice.resource import view
 from cornice.validators import colander_validator
 from pyramid.decorator import reify
 
+from kedja.views import validators
 from kedja.views.api.base import RIDPathSchema
 from kedja.views.api.base import RelationAPISchema
 from kedja.views.api.base import RelationIDPathSchema
@@ -55,12 +56,12 @@ class RelationsAPIView(ResourceAPIBase):
                 self.error("No relation with relation_id %r" % relation_id)
             return relation
 
-    @view(schema=RelationAPISchema())
+    @view(schema=RelationAPISchema(), validators=(colander_validator, validators.VIEW_RESOURCE))
     def get(self):
         relation_id = self.get_relation_id()
         return self.get_relation(relation_id)
 
-    @view(schema=UpdateRelationAPISchema())
+    @view(schema=UpdateRelationAPISchema(), validators=(colander_validator, validators.EDIT_RESOURCE))
     def put(self):
         relation_id = self.get_relation_id()
         appstruct = self.get_json_appstruct()
@@ -68,7 +69,8 @@ class RelationsAPIView(ResourceAPIBase):
             self.wall.relations_map[relation_id] = appstruct['members']
             return self.wall.relations_map.get_as_json(relation_id)
 
-    @view(schema=RelationAPISchema())
+    @view(schema=RelationAPISchema(),
+          validators=(colander_validator, validators.EDIT_RESOURCE))  # yes, not delete here since the resource isn't touched :)
     def delete(self):
         if self.wall:
             relation_id = self.get_relation_id()
@@ -77,12 +79,12 @@ class RelationsAPIView(ResourceAPIBase):
                 return {'removed': relation_id}
             self.error("No relation with relation_id %r" % relation_id)
 
-    @view(schema=ResourceAPISchema())
+    @view(schema=ResourceAPISchema(), validators=(colander_validator, validators.VIEW_RESOURCE))
     def collection_get(self):
         if self.wall:
             return list(self.wall.relations_map.get_all_as_json())
 
-    @view(schema=CreateRelationAPISchema())
+    @view(schema=CreateRelationAPISchema(), validators=(colander_validator, validators.EDIT_RESOURCE))
     def collection_post(self):
         if self.wall:
             appstruct = self.get_json_appstruct()
