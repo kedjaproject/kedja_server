@@ -8,6 +8,5 @@ def includeme(config):
     config.include('.permissions')
     config.include('.relations')
     config.include('.roles')
-    config.include('.resource')
     config.include('.users')
     config.include('.walls')
