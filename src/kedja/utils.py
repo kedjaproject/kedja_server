@@ -61,3 +61,8 @@ def inject_auth_header(config):
             event.request.headers['Authorization'] = auth
 
     config.add_subscriber(inject_header_subscriber, INewRequest)
+
+
+def validate_schema(schema, appstruct):
+    serialized = schema.serialize(appstruct)
+    return schema.deserialize(serialized)

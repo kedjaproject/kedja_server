@@ -223,3 +223,59 @@ class FunctionalCollectionsAPITests(TestCase):
         self._fixture(request)
         headers = (('Access-Control-Request-Method', 'POST'), ('Origin', 'http://localhost'))
         app.options('/api/1/walls/2/collections', status=200, headers=headers)
+
+
+class FunctionalCollectionsOrderAPITests(TestCase):
+
+    def setUp(self):
+        self.config = testing.setUp(settings=get_settings())
+        self.config.include('pyramid_tm')
+        self.config.include('kedja.testing')
+        self.config.include('kedja.views.api.collections')
+        self.config.include('kedja.views.exceptions')
+        # FIXME: Check with permissions too?
+        self.config.testing_securitypolicy(permissive=True, userid='100')
+
+    def _fixture(self, request):
+        from kedja import root_factory
+        root = root_factory(request)
+        content = request.registry.content
+        root['wall'] = content('Wall', rid=2)
+        root['wall']['collection'] = collection = content('Collection', rid=3)
+        collection['10'] = content('Card', rid=10)
+        collection['20'] = content('Card', rid=20)
+        collection['30'] = content('Card', rid=30)
+        commit()
+        return root
+
+    def test_put(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        self._fixture(request)
+        response = app.put('/api/1/collections/3/order', params=dumps({'order': [10, 20, 30]}), status=200)
+        ordering = [x['rid'] for x in response.json_body]
+        self.assertEqual([10, 20, 30], ordering)
+        response = app.put('/api/1/collections/3/order', params=dumps({'order': [30, 20, 10]}), status=200)
+        ordering = [x['rid'] for x in response.json_body]
+        self.assertEqual([30, 20, 10], ordering)
+
+    def test_put_too_many_names(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        self._fixture(request)
+        app.put('/api/1/collections/3/order', params=dumps({'order': [10, 20, 30, 40]}), status=400)
+
+    def test_missing_names(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        self._fixture(request)
+        app.put('/api/1/collections/3/order', params=dumps({'order': [10, 20]}), status=400)
