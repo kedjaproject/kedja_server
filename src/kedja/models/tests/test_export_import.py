@@ -100,7 +100,7 @@ class ImporterTests(TestCase):
         self._fut(root, request, _data_single, new_rids=True)
         self.assertEqual(2, len(root))
 
-    def test_import_complex_example_with_relations(self):
+    def test_import_complex_example(self):
         from kedja.models.template import TemplateFileUtil
         here = os.path.abspath(os.path.dirname(__file__))
         tpl_path = os.path.join(here, 'testing_fixtures')
@@ -114,6 +114,23 @@ class ImporterTests(TestCase):
         self._fut(root, request, data['export'], new_rids=False)
         # Make sure it's possible to import the same structure twice and keep the relations
         self._fut(root, request, data['export'], new_rids=True)
+
+    def test_import_complex_check_relations(self):
+        from kedja.models.template import TemplateFileUtil
+        here = os.path.abspath(os.path.dirname(__file__))
+        tpl_path = os.path.join(here, 'testing_fixtures')
+        self.config.registry.settings['kedja.templates_dir'] = tpl_path
+        root =_import_fixture(self.config)
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        tpl_util = TemplateFileUtil(self.config.registry)
+        data = tpl_util.read_appstruct('123')
+        wall = self._fut(root, request, data['export'], new_rids=True)
+        relations_dict = wall.relations_dict()
+        # There's a relation called 5267045789483324 in the import
+        for rid in relations_dict[5267045789483324]:
+            self.assertIsNotNone(root.rid_map.get_resource(rid))
 
 
 class ExporterTests(TestCase):

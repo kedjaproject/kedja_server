@@ -132,6 +132,9 @@ class RelationMap(Persistent):
     def __len__(self):
         return len(self.relation_to_rids)
 
+    def __iter__(self):
+        return self.relation_to_rids.iteritems()
+
 
 def remove_contained_cards_relations(event):
     """ If a collection is removed, cleanup all relevant relations to/from cards that will be removed.

@@ -59,7 +59,9 @@ def import_structure(context, request, data:dict, new_rids=True):
     if new_rids:
         data = deepcopy(data)
         rid_map = get_rid_map(context)
-        set_new_rids(rid_map, data)
+        mapping = set_new_rids(rid_map, data)
+        adjust_wall_relations(data, mapping)
+        new_rids = False
     content = request.registry.content
     new_resource = content(data['type_name'])
     new_resource.rid = data['rid']
@@ -75,31 +77,22 @@ def set_new_rids(rid_map, data:dict, mapping=None, relations=None):
     """ Make sure the RIDs within the import data gets set to new values.
         Adjusts data in place!
     """
-    is_import_root = mapping is None
     if mapping is None:
         mapping = {}
-    if relations is None:
-        relations = []
     assert rid_map is not None
-
     old_rid = data['rid']
     new_rid = rid_map.new_rid()
     mapping[old_rid] = new_rid
     data['rid'] = new_rid
-    if data['type_name'] == 'Wall':
-        relations.extend(data['data'].get('relations', []))
-
     for x in data.get('contained', ()):
         set_new_rids(rid_map, x, mapping=mapping, relations=relations)
-    if is_import_root:
-        # Walk through relations and replace rids
-        # Looks something like this:
-        # {'relation_id': <int>, 'members': [<int>, <int>]}
-        # see the wall schema for more info
-        # We only need to repoint the members to the correct rids
-        for relation in relations:
-            members = []
-            for rid in relation['members']:
-                members.append(mapping[rid])
-            # Should we remove relations with faulty rids? Currently it will cause a crash instead
-            relation['members'] = members
+    return mapping
+
+
+def adjust_wall_relations(data:dict, mapping):
+    assert data['type_name'] == 'Wall', "Only walls contain relations"
+    for rel in data['data'].get('relations', []):
+        members = []
+        for rid in rel['members']:
+            members.append(mapping[rid])
+        rel['members'] = members

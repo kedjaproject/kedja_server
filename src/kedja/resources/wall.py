@@ -74,6 +74,9 @@ class Wall(Folder, JSONRenderable, SecurityAwareMixin):
     def relations(self, value):
         self.relations_map.set_all_from_json(value)
 
+    def relations_dict(self):
+        return dict(self.relations_map)
+
 
 WallContent = ContentType(factory=Wall, schema=WallSchema, title=_("Wall"), ownership_role=WALL_OWNER)
 WallContent.add_permission_type(INVITE)
