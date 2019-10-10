@@ -1,4 +1,5 @@
 from copy import deepcopy
+from random import randint
 
 from arche.objectmap import get_rid_map
 
@@ -38,12 +39,13 @@ def export_appstruct(export, version=EXPORT_VERSION, title=None, created=utcnow(
     if title is None:
         # The first item should be the walls title
         title = export['data']['title']
+    maxint = 2**53-1
     return {
         'export': export,
         'version': version,
         'title': title,
         'created': created,
-        'id': export['rid']
+        'id': randint(-maxint, maxint)
     }
 
 

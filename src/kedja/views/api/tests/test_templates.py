@@ -118,5 +118,4 @@ class FunctionalTemplatesAPIViewTests(TestCase):
         response = app.post('/api/1/templates', status=200, params=body)
         data = response.json_body
         self.assertEqual('My new template', data['title'])
-        self.assertEqual(wall.rid, data['id'])
         self.assertEqual(2, len(list(tpl_util.get_all_appstructs())))
