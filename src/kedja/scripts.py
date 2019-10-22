@@ -6,7 +6,7 @@ from kedja.utils import get_role
 from pyramid.paster import bootstrap
 from pyramid.security import ALL_PERMISSIONS
 
-from kedja.interfaces import INamedACL, IRole
+from kedja.interfaces import INamedACL
 
 
 def print_acl():

@@ -2,11 +2,14 @@ from json import JSONDecodeError
 from logging import getLogger
 
 import colander
-from kedja.core.mutator import Mutator
-from kedja.permissions import VIEW
-from kedja.utils import init_schema, get_resource_type, get_permission_name
 from pyramid.decorator import reify
 from pyramid.traversal import find_root
+
+from kedja.core.mutator import Mutator
+from kedja.permissions import VIEW
+from kedja.utils import init_schema
+from kedja.utils import get_permission_name
+from kedja.utils import get_resource_type
 
 
 logger = getLogger(__name__)

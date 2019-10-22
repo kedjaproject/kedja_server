@@ -2,12 +2,13 @@
 from datetime import datetime
 
 import pytz
-from kedja.events import SchemaCreated
 from pyramid.interfaces import INewRequest
 from pyramid.threadlocal import get_current_registry
 from redis import StrictRedis
 
-from kedja.interfaces import INamedACL, IResource
+from kedja.events import SchemaCreated
+from kedja.interfaces import INamedACL
+from kedja.interfaces import IResource
 from kedja.interfaces import IRole
 
 

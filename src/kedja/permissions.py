@@ -1,6 +1,4 @@
 
-
-
 # Default permission types
 ADD = 'Add'
 EDIT = 'Edit'
