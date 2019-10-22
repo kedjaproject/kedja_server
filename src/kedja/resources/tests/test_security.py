@@ -270,3 +270,13 @@ class SecurityAwareMixinTests(TestCase):
              'denied': {'Badness'}},
             response
         )
+
+    def test_roles_should_be_stored_as_str(self):
+        self.config.include('kedja.core')
+        role_a = self._Role('a')
+        self.config.add_role(role_a)
+        obj = self._resource()
+        self.assertEqual(set(), obj.get_roles(1))
+        obj.add_user_roles(1, role_a)
+        role = list(obj.get_roles(1))[0]
+        self.assertIsInstance(role, str)

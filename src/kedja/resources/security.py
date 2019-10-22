@@ -40,7 +40,7 @@ class SecurityAwareMixin(object):
                 checked_roles.add(role)
             else:
                 raise RoleNotAllowedHere()
-        return checked_roles
+        return map(str, checked_roles)
 
     def add_user_roles(self, userid:str, *roles):
         """ See kedja.interfaces.ISecurityAware """
