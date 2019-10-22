@@ -13,7 +13,7 @@ def roles_adapter(obj, request):
 
 def includeme(config):
     """ Include rendering special objects. """
-    from kedja.models.acl import Role
+    from kedja.core.acl import Role
 
     json_renderer = config.registry.getUtility(IRendererFactory, name="json")
     json_renderer.add_adapter(datetime, datetime_adapter)

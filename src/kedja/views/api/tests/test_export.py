@@ -22,14 +22,17 @@ class FunctionalWallExportAPIViewTests(TestCase):
     def _fixture(self, request):
         from kedja import root_factory
         root = root_factory(request)
-        content = self.config.registry.content
-        root['wall'] = wall = content('Wall', rid=2, title="Hello wall")
+        from kedja.resources.wall import Wall
+        from kedja.resources.collection import Collection
+        from kedja.resources.card import Card
+
+        root['wall'] = wall = Wall(rid=2, title="Hello wall")
         results = {}
         for i in range(1, 4):
-            wall['col%s' % i] = collection = content('Collection', rid=i*10)
+            wall['col%s' % i] = collection = Collection(rid=i*10)
             results[collection.rid] = collection
             for j in range(1, 4):
-                collection['card%s' % j] = card = content('Card', rid=j*100+i)
+                collection['card%s' % j] = card = Card(rid=j*100+i)
                 results[card.rid] = card
         commit()
 

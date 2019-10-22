@@ -1,5 +1,8 @@
 from unittest import TestCase
 
+from kedja.models.credentials import Credentials
+from kedja.resources.root import Root
+from kedja.resources.user import User
 from pyramid import testing
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.request import apply_request_extensions
@@ -25,7 +28,7 @@ class HTTPHeaderAuthenticationPolicyTests(TestCase):
         testing.tearDown()
 
     def _fixture(self, request):
-        root = request.registry.content('Root')
+        root = Root()
         root_populator(root, request)
         return root
 
@@ -112,7 +115,7 @@ class OneTimeRegistrationTokenTests(TestCase):
     def test_create(self):
         request = testing.DummyRequest()
         apply_request_extensions(request)
-        root = request.registry.content('Root')
+        root = Root()
         obj = self._cut(root)
         payload = {'hello': 'world'}
         temp_token = obj.create(payload, registry=self.config.registry)
@@ -121,7 +124,7 @@ class OneTimeRegistrationTokenTests(TestCase):
     def test_consume(self):
         request = testing.DummyRequest()
         apply_request_extensions(request)
-        root = request.registry.content('Root')
+        root = Root()
         obj = self._cut(root)
         payload = {'hello': 'world'}
         temp_token = obj.create(payload, registry=self.config.registry)
@@ -132,7 +135,7 @@ class OneTimeRegistrationTokenTests(TestCase):
         self.config.include('kedja.models.auth')
         request = testing.DummyRequest()
         apply_request_extensions(request)
-        root = request.registry.content('Root')
+        root = Root()
         obj = self.config.registry.queryAdapter(root, IOneTimeRegistrationToken)
         self.assertTrue(verifyObject(IOneTimeRegistrationToken, obj))
 
@@ -149,11 +152,10 @@ class OneTimeAuthTokenTests(TestCase):
         testing.tearDown()
 
     def _fixture(self, request):
-        root = request.registry.content('Root')
+        root = Root()
         root_populator(root, request)
-        cf = self.config.registry.content
-        root['users']['10'] = user = cf('User', rid=10)
-        cred = cf('Credentials', '10', token='123')
+        root['users']['10'] = user = User(rid=10)
+        cred = Credentials('10', token='123')
         cred.save()
         return root, cred
 

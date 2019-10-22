@@ -1,12 +1,16 @@
 from json import dumps
 from unittest import TestCase
 
-from kedja.testing import get_settings
+from kedja.testing import get_settings, TestingAuthenticationPolicy
 from pyramid import testing
+from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.request import apply_request_extensions, Request
 from transaction import commit
 from webtest import TestApp
 
+from kedja.resources.root import Root
+from kedja.resources.wall import Wall
+from kedja.resources.collection import Collection
 from kedja.resources.card import Card
 
 
@@ -29,11 +33,10 @@ class CardsAPIViewTests(TestCase):
         return ContainedCardsAPI
 
     def _fixture(self):
-        content = self.config.registry.content
-        root = content('Root')
-        root['wall'] = wall = content('Wall', rid=2)
-        wall['collection'] = collection = content('Collection', rid=3)
-        collection['card'] = content('Card', rid=4)
+        root = Root()
+        root['wall'] = wall = Wall(rid=2)
+        wall['collection'] = collection = Collection(rid=3)
+        collection['card'] = Card(rid=4)
         return root
 
     def test_get(self):
@@ -97,24 +100,33 @@ class FunctionalCardsAPITests(TestCase):
         self.config = testing.setUp(settings=get_settings())
         self.config.include('pyramid_tm')
         self.config.include('kedja.testing')
+        self.config.include('kedja.security.default_acl')
         self.config.include('kedja.views.api.cards')
-        # FIXME: Check with permissions too?
-        self.config.testing_securitypolicy(permissive=True)
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='100'))
 
     def _fixture(self, request):
         from kedja import root_factory
         root = root_factory(request)
-        root['wall'] = request.registry.content('Wall', rid=2)
-        root['wall']['collection'] = request.registry.content('Collection', rid=3)
-        root['wall']['collection']['card'] = request.registry.content('Card', rid=4)
+        from kedja.resources.wall import Wall
+        from kedja.resources.collection import Collection
+        from kedja.resources.card import Card
+        root['wall'] = Wall(rid=2)
+        root['wall']['collection'] = Collection(rid=3)
+        root['wall']['collection']['card'] = Card(rid=4)
         commit()
         return root
+
+    def _request(self):
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        return request
 
     def test_get(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/collections/3/cards/4', status=200)
         res_data = response.json_body
@@ -124,24 +136,21 @@ class FunctionalCardsAPITests(TestCase):
     def test_get_404_parent(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.get('/api/1/collections/404/cards/4', status=404)
 
     def test_get_404_child(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.get('/api/1/collections/3/cards/400', status=404)
 
     def test_put(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.put('/api/1/collections/3/cards/4', params=dumps({'title': 'Hello world!'}), status=200)
         self.assertEqual(response.json_body['rid'], 4)
@@ -150,16 +159,14 @@ class FunctionalCardsAPITests(TestCase):
     def test_put_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.put('/api/1/collections/3/cards/4', params=dumps({'title': 123}), status=400)
 
     def test_delete(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.delete('/api/1/collections/3/cards/4', status=200)
         self.assertEqual({"removed": 4}, response.json_body)
@@ -167,16 +174,14 @@ class FunctionalCardsAPITests(TestCase):
     def test_delete_404(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.delete('/api/1/collections/3/cards/404', status=404)
 
     def test_collection_get(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/collections/3/cards', status=200)
         self.assertEqual([{'data': {'int_indicator': -1, 'title': ''}, 'rid': 4, 'type_name': 'Card'}], response.json_body)
@@ -184,8 +189,7 @@ class FunctionalCardsAPITests(TestCase):
     def test_collection_post(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         root = self._fixture(request)
         response = app.post('/api/1/collections/3/cards', params=dumps({'title': 'Hello world!'}), status=200)
         # Find the new object
@@ -199,16 +203,14 @@ class FunctionalCardsAPITests(TestCase):
     def test_collection_post_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.post('/api/1/collections/3/cards', params=dumps({'title': 123}), status=400)
 
     def test_options(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         headers = (('Access-Control-Request-Method', 'PUT'), ('Origin', 'http://localhost'))
         app.options('/api/1/collections/3/cards/4', status=200, headers=headers)
@@ -216,8 +218,7 @@ class FunctionalCardsAPITests(TestCase):
     def test_collection_options(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         headers = (('Access-Control-Request-Method', 'POST'), ('Origin', 'http://localhost'))
         app.options('/api/1/collections/3/cards', status=200, headers=headers)

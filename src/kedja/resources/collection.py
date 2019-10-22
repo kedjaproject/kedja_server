@@ -1,11 +1,11 @@
 import colander
-from arche.folder import Folder
-from arche.content import ContentType
+from kedja.core.folder import Folder
 from zope.interface import implementer
 
 from kedja import _
 from kedja.interfaces import ICollection
-from kedja.resources.json import JSONRenderable
+from kedja.resources.mixins import JSONRenderable
+from kedja.core.permissions import Permissions
 
 
 class CollectionSchema(colander.Schema):
@@ -29,10 +29,10 @@ class Collection(Folder, JSONRenderable):
         self.order = ()  # Enable ordering
 
 
-CollectionContent = ContentType(factory=Collection, schema=CollectionSchema, title=_("Collection"))
-
-CollectionPerms = CollectionContent.permissions
+COLLECTION_PERMISSIONS = Permissions(Collection)
 
 
 def includeme(config):
-    config.add_content(CollectionContent)
+    config.add_content(Collection)
+    config.add_default_schema(Collection, CollectionSchema)
+    config.add_permissions(COLLECTION_PERMISSIONS)

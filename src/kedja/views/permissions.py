@@ -1,4 +1,5 @@
 """ Special cornice-version validators. """
+from kedja.utils import get_resource_type, get_permission_name
 from kedja.views.api.base import add_error
 
 
@@ -58,11 +59,15 @@ class HasPermissionType(HasPermission):
         self.type_name = type_name
 
     def check(self, resource, request, permission):
-        content = request.registry.content
+        # This extract the exact permission name, something like 'Edit' -> 'Wall:Edit'
+        # note that the resource passed might be something else than what we want to check the permission for.
+        # for instance within the root we'll want to check 'Wall:Add'. So use type_name if it's set.
+        registry = request.registry
         if self.type_name is None:
-            type_name = content.get_type(resource)
+            type_name = get_resource_type(resource)
         else:
             type_name = self.type_name
-        # This extract the exact permission name, something like 'Edit' -> 'Wall:Edit'
-        perm = content[type_name].permissions[permission]
-        return super().check(resource, request, perm)
+        assert type_name in registry.content, "{} is not registered as a content type".format(self.type_name)
+        assert type_name in registry.permissions, "{} is not registered within permissions".format(self.type_name)
+        extracted_permission = registry.permissions[type_name][permission]
+        return super().check(resource, request, extracted_permission)

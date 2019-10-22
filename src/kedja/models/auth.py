@@ -2,7 +2,6 @@ import json
 from random import choice
 from string import ascii_letters, digits
 
-from arche.interfaces import IRoot
 from pyramid.authentication import CallbackAuthenticationPolicy
 from pyramid.authentication import extract_http_basic_credentials
 from pyramid.authorization import ACLAuthorizationPolicy
@@ -14,7 +13,7 @@ from zope.interface import implementer
 from kedja.models.credentials import get_valid_credentials
 from kedja.models.credentials import remove_credentials
 from kedja.models.credentials import Credentials
-from kedja.interfaces import IOneTimeAuthToken
+from kedja.interfaces import IOneTimeAuthToken, IRoot
 from kedja.interfaces import IOneTimeRegistrationToken
 from kedja.utils import get_redis_conn
 
@@ -30,7 +29,7 @@ class HTTPHeaderAuthenticationPolicy(CallbackAuthenticationPolicy):
         self.debug = debug
 
     def remember(self, request, userid, token=None, **kw):
-        cred = request.registry.content('Credentials', userid=userid, token=token, registry=request.registry)
+        cred = Credentials(userid=userid, token=token, registry=request.registry)
         cred.save()
         return cred
 

@@ -4,7 +4,7 @@ from cornice.validators import colander_validator
 from cornice.resource import view
 
 from kedja.resources.collection import CollectionSchema
-from kedja.utils import validate_schema
+from kedja.utils import validate_appstruct
 from kedja.views import validators
 from kedja.views.api.base import SubResourceAPISchema
 from kedja.views.api.base import ResourceAPIBase
@@ -110,7 +110,7 @@ class CollectionsOrderingAPIView(ResourceAPIBase):
         if collection is not None:
             appstruct = self.get_json_appstruct()
             schema = CardOrderSchema().bind(request=self.request, context=self.context, collection=collection)
-            validated = validate_schema(schema, appstruct)
+            validated = validate_appstruct(schema, appstruct)
             # FIXME: Fire event?
             collection.order = validated['order']
             return self.base_collection_get(collection, type_name='Card')

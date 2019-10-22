@@ -1,13 +1,13 @@
 import colander
-from arche.folder import Folder
-from arche.content import ContentType
+from kedja.core.folder import Folder
 from zope.interface import implementer
 
 from kedja import _
 from kedja.interfaces import IUser
 from kedja.security import PERSONAL
 from kedja.resources.security import SecurityAwareMixin
-from kedja.resources.json import JSONRenderable
+from kedja.resources.mixins import JSONRenderable
+from kedja.core.permissions import Permissions
 
 
 class UserSchema(colander.Schema):
@@ -53,10 +53,10 @@ class User(Folder, JSONRenderable, SecurityAwareMixin):
         return str(self.rid)
 
 
-UserContent = ContentType(factory=User, schema=UserSchema, title=_("User"))
-
-UserPerms = UserContent.permissions
+USER_PERMISSIONS = Permissions(User)
 
 
 def includeme(config):
-    config.add_content(UserContent)
+    config.add_content(User)
+    config.add_default_schema(User, UserSchema)
+    config.add_permissions(USER_PERMISSIONS)

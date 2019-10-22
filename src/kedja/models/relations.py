@@ -2,7 +2,7 @@ from random import randrange
 
 from BTrees import family64
 from BTrees.OOBTree import OOSet
-from arche.interfaces import IResourceWillBeRemoved
+from kedja.interfaces import IResourceWillBeRemoved
 from persistent import Persistent
 from pyramid.traversal import find_interface
 
@@ -139,7 +139,7 @@ class RelationMap(Persistent):
 def remove_contained_cards_relations(event):
     """ If a collection is removed, cleanup all relevant relations to/from cards that will be removed.
     """
-    resource = event.context
+    resource = event.resource
     wall = find_interface(resource, IWall)
     for rid in event.contained_rids:
         for relation_id in wall.relations_map.find_relations(rid):
@@ -149,7 +149,7 @@ def remove_contained_cards_relations(event):
 def remove_card_relations(event):
     """ In case a card is removed. cleanup all relations to/from that card.
     """
-    resource = event.context
+    resource = event.resource
     wall = find_interface(resource, IWall)
     for relation_id in wall.relations_map.find_relations(resource.rid):
         del wall.relations_map[relation_id]

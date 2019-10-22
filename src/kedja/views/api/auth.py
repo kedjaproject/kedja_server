@@ -44,6 +44,8 @@ from authomatic.adapters import WebObAdapter
 from cornice.resource import resource
 from cornice.resource import view
 from cornice.validators import colander_validator
+from kedja.core.mutator import Mutator
+from kedja.utils import init_schema
 from pyramid.authentication import extract_http_basic_credentials
 from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPBadRequest
@@ -205,8 +207,11 @@ class AuthomaticView(BaseView, AuthViewMixin):
                     currdata = getattr(user, k, None)
                     if currdata:
                         userdata.pop(k, None)
-                with self.request.get_mutator(user) as mutator:
-                    mutator.update(userdata)
+
+                schema_factory = self.request.get_default_schema(user)
+                schema = init_schema(schema_factory, resource=user, registry=self.request.registry)
+                with Mutator(user, schema, registry=self.request.registry) as m:
+                    changed = m.update(userdata)
 
                 # Login user
                 cred = self.request.registry.content('Credentials', user.userid)
@@ -238,8 +243,10 @@ class AuthRegisterAPIView(APIBase, AuthViewMixin):
         users[user.userid] = user
         users.add_provider(user, userpayload)
         # FIXME: Handle all other updates from POST?
-        with self.request.get_mutator(user) as mutator:
-             mutator.update(userpayload)
+        schema_factory = self.request.get_default_schema(user)
+        schema = init_schema(schema_factory, resource=user, registry=self.request.registry)
+        with Mutator(user, schema, registry=self.request.registry) as m:
+            m.update(userpayload)
         cred = self.request.registry.content('Credentials', user.userid)
         cred.save()
         return cred

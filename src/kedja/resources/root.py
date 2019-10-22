@@ -1,15 +1,15 @@
 import colander
-from arche.folder import Folder
-from arche.content import ContentType
-from arche.objectmap.rid_map import ResourceIDMap
+from kedja.core.folder import Folder
+from kedja.core.rid_map import ResourceIDMap
 from zope.interface import implementer
 
-from kedja.resources.json import JSONRenderable
+from kedja.resources.mixins import JSONRenderable
 from kedja.resources.security import SecurityAwareMixin
 from kedja.interfaces import IRoot
 from kedja.permissions import MANAGE_TEMPLATES
 from kedja.permissions import MANAGE_ROLES
 from kedja import _
+from kedja.core.permissions import Permissions
 
 
 class RootSchema(colander.Schema):
@@ -24,6 +24,7 @@ class RootSchema(colander.Schema):
         """ Use this instead of deferred, since cornice can't handle schema binding. """
         pass
 
+
 @implementer(IRoot)
 class Root(Folder, JSONRenderable, SecurityAwareMixin):
     """ Application root - created once. """
@@ -36,10 +37,11 @@ class Root(Folder, JSONRenderable, SecurityAwareMixin):
         self.rid_map = ResourceIDMap(self)
 
 
-RootContent = ContentType(factory=Root, schema=RootSchema, title=_("Root"))
-RootContent.add_permission_type(MANAGE_TEMPLATES)
-RootContent.add_permission_type(MANAGE_ROLES)
-RootPerms = RootContent.permissions
+ROOT_PERMISSIONS = Permissions(Root)
+ROOT_PERMISSIONS.add(MANAGE_TEMPLATES, MANAGE_ROLES)
+
 
 def includeme(config):
-    config.add_content(RootContent)
+    config.add_content(Root)
+    config.add_default_schema(Root, RootSchema)
+    config.add_permissions(ROOT_PERMISSIONS)

@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from kedja.security import WALL_OWNER
+from kedja.testing import get_settings
 from pyramid import testing
 from zope.interface.verify import verifyObject
 
@@ -34,3 +36,25 @@ class WallTests(TestCase):
         # Existing relations will be cleared
         obj.relations = [{'relation_id': 10, 'members': [5,6]}]
         self.assertEqual(obj.relations, [{'relation_id': 10, 'members': [5,6]}])
+
+
+class SetRoleFromAuthenticatedTests(TestCase):
+
+    def setUp(self):
+        self.config = testing.setUp(settings=get_settings())
+        self.config.include('kedja.testing')
+        self.config.include('kedja.resources.wall')
+        self.config.testing_securitypolicy(userid='10')
+
+    def tearDown(self):
+        testing.tearDown()
+
+    def test_set_role_from_authenticated(self):
+        from kedja.resources.root import Root
+        from kedja.resources.wall import Wall
+        request = testing.DummyRequest()
+        self.config.begin(request)
+        root = Root()
+        root['wall'] = wall = Wall()
+
+        self.assertEqual({WALL_OWNER}, wall.get_roles(10))

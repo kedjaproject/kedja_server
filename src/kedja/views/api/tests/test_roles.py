@@ -32,7 +32,7 @@ class FunctionalRolesAPITests(TestCase):
 
     @property
     def _Role(self):
-        from kedja.models.acl import Role
+        from kedja.core.acl import Role
         return Role
 
     def test_get(self):

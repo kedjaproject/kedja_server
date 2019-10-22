@@ -1,9 +1,13 @@
 from json import dumps, loads
 from unittest import TestCase
 
+from kedja.resources.card import Card
+from kedja.resources.collection import Collection
+from kedja.resources.root import Root
 from kedja.security import WALL_OWNER
-from kedja.testing import get_settings
+from kedja.testing import get_settings, TestingAuthenticationPolicy
 from pyramid import testing
+from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.renderers import render
 from pyramid.request import apply_request_extensions
 from pyramid.request import Request
@@ -20,7 +24,9 @@ class WallsAPIViewTests(TestCase):
         self.config.include('kedja.testing.minimal')
         self.config.include('kedja.resources.root')
         self.config.include('kedja.resources.wall')
-        self.config.testing_securitypolicy(permissive=True, userid='100')
+        self.config.include('kedja.security.default_acl')
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='100'))
 
     def tearDown(self):
         testing.tearDown()
@@ -31,9 +37,10 @@ class WallsAPIViewTests(TestCase):
         return WallsAPIView
 
     def _fixture(self):
-        content = self.config.registry.content
-        root = content('Root')
-        root['wall'] = wall = content('Wall', rid=2)
+        from kedja.resources.root import Root
+        from kedja.resources.wall import Wall
+        root = Root()
+        root['wall'] = wall = Wall(rid=2)
         wall.add_user_roles('100', WALL_OWNER)
         return root
 
@@ -71,6 +78,7 @@ class WallsAPIViewTests(TestCase):
     def test_collection_get(self):
         request = testing.DummyRequest()
         apply_request_extensions(request)
+        self.config.begin(request)
         root = self._fixture()
         inst = self._cut(request, context=root)
         response = inst.collection_get()
@@ -105,13 +113,17 @@ class WallsStructureAPIViewTests(TestCase):
         return WallStructureAPIView
 
     def _fixture(self):
-        content = self.config.registry.content
-        root = content('Root')
-        root['wall'] = wall = content('Wall', rid=2)
+        from kedja.resources.root import Root
+        from kedja.resources.wall import Wall
+        from kedja.resources.collection import Collection
+        from kedja.resources.card import Card
+
+        root = Root()
+        root['wall'] = wall = Wall(rid=2)
         for i in range(1, 4):
-            wall['col%s' % i] = collection = content('Collection', rid=i*10)
+            wall['col%s' % i] = collection = Collection(rid=i*10)
             for j in range(1, 4):
-                collection['card%s' % j] = content('Card', rid=j*100+i)
+                collection['card%s' % j] = Card(rid=j*100+i)
         return root
 
     def test_get(self):
@@ -151,15 +163,14 @@ class WallsContentAPIViewTests(TestCase):
         return WallContentAPIView
 
     def _fixture(self):
-        content = self.config.registry.content
-        root = content('Root')
-        root['wall'] = wall = content('Wall', rid=2)
+        root = Root()
+        root['wall'] = wall = Wall(rid=2)
         resources = {}
         for i in range(1, 4):
-            wall['col%s' % i] = collection = content('Collection', rid=i*10)
+            wall['col%s' % i] = collection = Collection(rid=i*10)
             resources[collection.rid] = collection
             for j in range(1, 4):
-                collection['card%s' % j] = card = content('Card', rid=j*100+i)
+                collection['card%s' % j] = card = Card(rid=j*100+i)
                 resources[card.rid] = card
         return root, resources
 
@@ -180,20 +191,27 @@ class FunctionalWallsAPITests(TestCase):
         self.config.include('kedja.testing')
         self.config.include('pyramid_tm')
         self.config.include('kedja.views.api.walls')
-        self.config.testing_securitypolicy(permissive=True, userid='100')
+        self.config.include('kedja.security.default_acl')
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='100'))
 
     def _fixture(self, request):
         from kedja import root_factory
         root = root_factory(request)
-        root['wall'] = request.registry.content('Wall', rid=2)
+        root['wall'] = Wall(rid=2)
         commit()
         return root
+
+    def _request(self):
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        return request
 
     def test_get(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/walls/2', status=200)
         self.assertEqual(response.json_body,
@@ -202,8 +220,7 @@ class FunctionalWallsAPITests(TestCase):
     def test_get_404(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/walls/10', status=404)
         self.assertEqual(response.json_body.get('status', None), 'error')
@@ -211,9 +228,7 @@ class FunctionalWallsAPITests(TestCase):
     def test_put(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
-        self.config.begin(request)
+        request = self._request()
         self._fixture(request)
         response = app.put('/api/1/walls/2', params=dumps({'title': 'Hello world!'}), status=200)
         self.assertEqual({"type_name": "Wall", "rid": 2, "data":
@@ -223,8 +238,7 @@ class FunctionalWallsAPITests(TestCase):
     def test_put_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.put('/api/1/walls/2', params=dumps({'title': 100}), status=400)
         self.assertEqual(response.json_body.get('status'), 'error')
@@ -232,8 +246,7 @@ class FunctionalWallsAPITests(TestCase):
     def test_delete(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.delete('/api/1/walls/2', status=200)
         self.assertEqual({"removed": 2}, response.json_body)
@@ -241,8 +254,7 @@ class FunctionalWallsAPITests(TestCase):
     def test_delete_404(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.delete('/api/1/walls/10', status=404)
         self.assertEqual(response.json_body.get('status', None), 'error')
@@ -250,9 +262,7 @@ class FunctionalWallsAPITests(TestCase):
     def test_collection_get(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
-        self.config.begin(request)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/walls', status=200)
         self.assertEqual([{'data': {'acl_name': 'private_wall', 'relations': [], 'title': ''}, 'rid': 2, 'type_name': 'Wall'}],
@@ -261,9 +271,9 @@ class FunctionalWallsAPITests(TestCase):
     def test_collection_post(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         root = self._fixture(request)
+        # root.add_user_roles(100, )
         response = app.post('/api/1/walls', params=dumps({'title': 'Hello world!'}), status=200)
         # Find the new object
         keys = list(root.keys())
@@ -277,16 +287,14 @@ class FunctionalWallsAPITests(TestCase):
     def test_collection_post_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.post('/api/1/walls', params=dumps({'title': 123}), status=400)
 
     def test_options(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         headers = (('Access-Control-Request-Method', 'PUT'), ('Origin', 'http://localhost'))
         app.options('/api/1/walls/123', status=200, headers=headers)
@@ -294,8 +302,7 @@ class FunctionalWallsAPITests(TestCase):
     def test_collection_options(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         headers = (('Access-Control-Request-Method', 'POST'), ('Origin', 'http://localhost'))
         app.options('/api/1/walls', status=200, headers=headers)
@@ -308,25 +315,31 @@ class FunctionalWallStructureAPIViewTests(TestCase):
         self.config.include('kedja.testing')
         self.config.include('pyramid_tm')
         self.config.include('kedja.views.api.walls')
-        self.config.testing_securitypolicy(permissive=True)
+        self.config.include('kedja.security.default_acl')
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='100'))
 
     def _fixture(self, request):
         from kedja import root_factory
-        content = request.registry.content
         root = root_factory(request)
-        root['wall'] = wall = content('Wall', rid=2)
+        root['wall'] = wall = Wall(rid=2)
         for i in range(1, 4):
-            wall['col%s' % i] = collection = content('Collection', rid=i*10)
+            wall['col%s' % i] = collection = Collection(rid=i*10)
             for j in range(1, 4):
-                collection['card%s' % j] = content('Card', rid=j*100+i)
+                collection['card%s' % j] = Card(rid=j*100+i)
         commit()
         return root
+
+    def _request(self):
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        return request
 
     def test_get(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/walls/2/structure', status=200)
         expected = [
@@ -350,13 +363,16 @@ class FunctionalWallContentAPIViewTests(TestCase):
         self.config.include('kedja.testing')
         self.config.include('pyramid_tm')
         self.config.include('kedja.views.api.walls')
-        self.config.testing_securitypolicy(permissive=True)
+        self.config.include('kedja.security.default_acl')
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='100'))
 
     def _fixture(self, request):
         from kedja import root_factory
         root = root_factory(request)
         content = self.config.registry.content
         root['wall'] = wall = content('Wall', rid=2)
+        wall.add_user_roles('100', WALL_OWNER)
         results = {}
         for i in range(1, 4):
             wall['col%s' % i] = collection = content('Collection', rid=i*10)
@@ -372,6 +388,7 @@ class FunctionalWallContentAPIViewTests(TestCase):
         app = TestApp(wsgiapp)
         request = testing.DummyRequest()
         apply_request_extensions(request)
+        self.config.begin(request)
         content = self._fixture(request)
         response = app.get('/api/1/walls/2/content', status=200)
         converted = render('json', content, request=request)
@@ -387,7 +404,8 @@ class FunctionalACLAPIViewTests(TestCase):
         self.config.include('pyramid_tm')
         self.config.include('kedja.views.api.walls')
         self.config.include('kedja.security.default_acl')
-        self.config.testing_securitypolicy(permissive=True)
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='100'))
 
     def _fixture(self, request):
         from kedja import root_factory
@@ -397,12 +415,16 @@ class FunctionalACLAPIViewTests(TestCase):
         commit()
         return wall
 
-    def test_get(self):
-        wsgiapp = self.config.make_wsgi_app()
-        app = TestApp(wsgiapp)
+    def _request(self):
         request = testing.DummyRequest()
         apply_request_extensions(request)
         self.config.begin(request)
+        return request
+
+    def test_get(self):
+        wsgiapp = self.config.make_wsgi_app()
+        app = TestApp(wsgiapp)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/walls/2/acl', status=200)
         self.assertEqual(1, sum([x['active'] for x in response.json_body]))
@@ -411,9 +433,7 @@ class FunctionalACLAPIViewTests(TestCase):
     def test_put(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
-        self.config.begin(request)
+        request = self._request()
         wall = self._fixture(request)
         body = dumps({'acl_name': 'public_wall'})
         self.assertEqual(wall.acl_name, 'private_wall')
@@ -424,9 +444,7 @@ class FunctionalACLAPIViewTests(TestCase):
     def test_put_no_data(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
-        self.config.begin(request)
+        request = self._request()
         self._fixture(request)
         body = ""
         response = app.put('/api/1/walls/2/acl', params=body, status=400)
@@ -435,9 +453,7 @@ class FunctionalACLAPIViewTests(TestCase):
     def test_put_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
-        self.config.begin(request)
+        request = self._request()
         self._fixture(request)
         body = dumps({'acl_name': 'something_that_doesnt_exist'})
         response = app.put('/api/1/walls/2/acl', params=body, status=400)

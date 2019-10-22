@@ -69,8 +69,7 @@ class RelationsIntegrationTests(TestCase):
 
     def setUp(self):
         self.config = testing.setUp()
-        self.config.include('arche.content')
-        self.config.include('arche.predicates')
+        self.config.include('kedja.testing.minimal')
         self.config.include('kedja.resources')
         self.config.include('kedja.models.relations')
 
@@ -80,18 +79,21 @@ class RelationsIntegrationTests(TestCase):
     def _fixture(self):
         request = testing.DummyRequest()
         apply_request_extensions(request)
-        cf = self.config.registry.content
-        root = cf('Root')
+        from kedja.resources.root import Root
+        from kedja.resources.wall import Wall
+        from kedja.resources.collection import Collection
+        from kedja.resources.card import Card
+        root = Root()
         root_populator(root, request)
-        root['wall'] = wall = cf('Wall')
-        wall['collection1'] = c1 = cf('Collection', rid=10)
-        c1['c1'] = cf('Card', rid=11)
-        c1['c2'] = cf('Card', rid=12)
-        c1['c3'] = cf('Card', rid=13)
-        wall['collection2'] = c2 = cf('Collection', rid=20)
-        c2['c1'] = cf('Card', rid=21)
-        c2['c2'] = cf('Card', rid=22)
-        c2['c3'] = cf('Card', rid=23)
+        root['wall'] = wall = Wall()
+        wall['collection1'] = c1 = Collection(rid=10)
+        c1['c1'] = Card(rid=11)
+        c1['c2'] = Card(rid=12)
+        c1['c3'] = Card(rid=13)
+        wall['collection2'] = c2 = Collection(rid=20)
+        c2['c1'] = Card(rid=21)
+        c2['c2'] = Card(rid=22)
+        c2['c3'] = Card(rid=23)
         return wall, request
 
     def test_card_removes_connections(self):

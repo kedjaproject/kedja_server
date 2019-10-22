@@ -1,9 +1,10 @@
 from copy import deepcopy
 from random import randint
 
-from arche.objectmap import get_rid_map
+from kedja.core import get_rid_map
+from kedja.core.mutator import Mutator
 
-from kedja.utils import utcnow
+from kedja.utils import utcnow, init_schema
 
 
 EXPORT_VERSION = 1
@@ -68,8 +69,12 @@ def import_structure(context, request, data:dict, new_rids=True):
     new_resource = content(data['type_name'])
     new_resource.rid = data['rid']
     context.add(str(data['rid']), new_resource)
-    with request.get_mutator(new_resource) as mutator:
-        mutator.update(data['data'])
+
+    schema_factory = request.get_default_schema(new_resource)
+    schema = init_schema(schema_factory, resource=new_resource, registry=request.registry)
+    with Mutator(new_resource, schema, registry=request.registry) as m:
+        m.update(data['data'])
+
     for contained_data in data.get('contained', []):
         import_structure(new_resource, request, contained_data, new_rids=new_rids)
     return new_resource

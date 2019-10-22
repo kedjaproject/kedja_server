@@ -9,15 +9,15 @@ with open(os.path.join(here, 'CHANGES.txt')) as f:
     CHANGES = f.read()
 
 requires = [
-#    'plaster_pastedeploy',
+    'plaster_pastedeploy',
     'pyramid',
     'pyramid_retry',
     'pyramid_tm',
     'pyramid_zodbconn',
     'pyramid_session_redis',
+    'pyramid_chameleon',
     'transaction',
     'ZODB3',
-    'arche',
     'peppercorn',
     'cornice',
     'cornice_swagger',
@@ -28,6 +28,8 @@ requires = [
     'pytz',
     'redis',
     'awesome-slugify',
+    'zope.copy',
+    'zope.component',
 ]
 
 tests_require = [

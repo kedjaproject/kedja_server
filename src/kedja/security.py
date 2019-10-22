@@ -1,4 +1,3 @@
-from pyramid import security as psec
 from pyramid.security import ALL_PERMISSIONS
 from pyramid.security import Everyone
 from pyramid.security import Authenticated
@@ -6,8 +5,8 @@ from pyramid.security import Authenticated
 from kedja.interfaces import IWall
 from kedja.interfaces import IUser
 from kedja.interfaces import IRoot
-from kedja.models.acl import NamedACL
-from kedja.models.acl import Role
+from kedja.core.acl import NamedACL
+from kedja.core.acl import Role
 
 from kedja import _
 
@@ -81,20 +80,18 @@ GUEST = Role(
 # Also note Pyramids Everyone and Authenticated
 
 def default_acl(config):
-    from kedja.resources.card import CardPerms
-    from kedja.resources.collection import CollectionPerms
-    from kedja.resources.wall import WallPerms
-    from kedja.resources.root import RootPerms
+    from kedja.resources.card import CARD_PERMISSIONS
+    from kedja.resources.collection import COLLECTION_PERMISSIONS
+    from kedja.resources.wall import WALL_PERMISSIONS
+    from kedja.resources.root import ROOT_PERMISSIONS
     # These are permission categories
-    from kedja.permissions import ADD, VIEW, EDIT, DELETE
-
-    base_perm_types = [ADD, VIEW, EDIT, DELETE]
+    from kedja.permissions import ADD, VIEW, EDIT
 
     # Root
     root_acl = NamedACL('root', title="Default Root ACL", required=IRoot)
     root_acl.add_allow(INSTANCE_ADMIN, ALL_PERMISSIONS)
-    root_acl.add_allow(SYSTEM_EVERYONE, RootPerms[VIEW])
-    root_acl.add_allow(SYSTEM_AUTHENTICATED, WallPerms[ADD])
+    root_acl.add_allow(SYSTEM_EVERYONE, ROOT_PERMISSIONS[VIEW])
+    root_acl.add_allow(SYSTEM_AUTHENTICATED, WALL_PERMISSIONS[ADD])
 
     # Private hidden walls
     private_wall = NamedACL('private_wall', title="Private wall",
@@ -102,21 +99,21 @@ def default_acl(config):
                             required=IWall)
     private_wall.add_allow(INSTANCE_ADMIN, ALL_PERMISSIONS)
     private_wall.add_allow(WALL_OWNER, ALL_PERMISSIONS)
-    private_wall.add_allow(COLLABORATOR, [CardPerms[x] for x in base_perm_types])
-    private_wall.add_allow(COLLABORATOR, [CollectionPerms[x] for x in base_perm_types])
-    private_wall.add_allow(COLLABORATOR, [WallPerms[VIEW], WallPerms[EDIT]])
-    private_wall.add_allow(GUEST, CardPerms[VIEW])
-    private_wall.add_allow(GUEST, CollectionPerms[VIEW])
-    private_wall.add_allow(GUEST, WallPerms[VIEW])
+    private_wall.add_allow(COLLABORATOR, CARD_PERMISSIONS.values())
+    private_wall.add_allow(COLLABORATOR, COLLECTION_PERMISSIONS.values())
+    private_wall.add_allow(COLLABORATOR, [WALL_PERMISSIONS[VIEW], WALL_PERMISSIONS[EDIT]])
+    private_wall.add_allow(GUEST, CARD_PERMISSIONS[VIEW])
+    private_wall.add_allow(GUEST, COLLECTION_PERMISSIONS[VIEW])
+    private_wall.add_allow(GUEST, WALL_PERMISSIONS[VIEW])
 
     # Public walls - everything private walls have but with visibility for everyone
     public_wall = NamedACL('public_wall', title="Public wall",
                            description="Publicly accessible",
                            required=IWall)
     public_wall.extend(private_wall)
-    public_wall.add_allow(SYSTEM_EVERYONE, CardPerms[VIEW])
-    public_wall.add_allow(SYSTEM_EVERYONE, CollectionPerms[VIEW])
-    public_wall.add_allow(SYSTEM_EVERYONE, WallPerms[VIEW])
+    public_wall.add_allow(SYSTEM_EVERYONE, CARD_PERMISSIONS[VIEW])
+    public_wall.add_allow(SYSTEM_EVERYONE, COLLECTION_PERMISSIONS[VIEW])
+    public_wall.add_allow(SYSTEM_EVERYONE, WALL_PERMISSIONS[VIEW])
 
     # User acl
     user = NamedACL('user', title="User  ACL",

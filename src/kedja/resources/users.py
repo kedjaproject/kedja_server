@@ -1,6 +1,5 @@
 import colander
-from arche.folder import Folder
-from arche.content import ContentType
+from kedja.core.folder import Folder
 from pyramid.traversal import find_root
 from zope.interface import implementer
 from BTrees.OOBTree import OOBTree
@@ -9,7 +8,8 @@ from BTrees.OLBTree import OLBTree
 from kedja import _
 from kedja.interfaces import IUser
 from kedja.interfaces import IUsers
-from kedja.resources.json import JSONRenderable
+from kedja.resources.mixins import JSONRenderable
+from kedja.core.permissions import Permissions
 
 
 class UsersSchema(colander.Schema):
@@ -53,8 +53,9 @@ class Users(Folder, JSONRenderable):
         return default
 
 
-UsersContent = ContentType(factory=Users, schema=UsersSchema, title=_("Users"))
+USERS_PERMISSIONS = Permissions(Users)
 
 
 def includeme(config):
-    config.add_content(UsersContent)
+    config.add_content(Users)
+    config.add_permissions(USERS_PERMISSIONS)

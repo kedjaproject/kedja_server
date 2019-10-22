@@ -26,12 +26,12 @@ class NamedACLTests(TestCase):
 
     @property
     def _cut(self):
-        from kedja.models.acl import NamedACL
+        from kedja.core.acl import NamedACL
         return NamedACL
 
     @property
     def Role(self):
-        from kedja.models.acl import Role
+        from kedja.core.acl import Role
         return Role
 
     def test_add_allow(self):
@@ -123,7 +123,7 @@ class RoleTests(TestCase):
 
     @property
     def _cut(self):
-        from kedja.models.acl import Role
+        from kedja.core.acl import Role
         return Role
 
     def test_required_as_none(self):

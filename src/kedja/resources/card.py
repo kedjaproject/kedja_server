@@ -1,11 +1,11 @@
 import colander
-from arche.folder import Folder
-from arche.content import ContentType
+from kedja.core.folder import Folder
+from kedja.core.permissions import Permissions
 from zope.interface import implementer
 
 from kedja import _
 from kedja.interfaces import ICard
-from kedja.resources.json import JSONRenderable
+from kedja.resources.mixins import JSONRenderable
 
 
 class CardSchema(colander.Schema):
@@ -35,10 +35,10 @@ class Card(Folder, JSONRenderable):
         self.order = ()  # Enable ordering
 
 
-CardContent = ContentType(factory=Card, schema=CardSchema, title=_("Card"))
-
-CardPerms = CardContent.permissions
+CARD_PERMISSIONS = Permissions(Card)
 
 
 def includeme(config):
-    config.add_content(CardContent)
+    config.add_content(Card)
+    config.add_default_schema(Card, CardSchema)
+    config.add_permissions(CARD_PERMISSIONS)

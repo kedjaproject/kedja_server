@@ -2,8 +2,9 @@ from json import dumps
 from unittest import TestCase
 
 from kedja.models.relations import relation_dict
-from kedja.testing import get_settings
+from kedja.testing import get_settings, TestingAuthenticationPolicy
 from pyramid import testing
+from pyramid.authorization import ACLAuthorizationPolicy
 
 from pyramid.request import apply_request_extensions, Request
 from transaction import commit
@@ -26,13 +27,17 @@ class RelationsAPIViewTests(TestCase):
         return RelationsAPIView
 
     def _fixture(self):
-        content = self.config.registry.content
-        root = content('Root')
-        root['wall'] = wall = content('Wall', title='Wall', rid=2)
-        wall['collection'] = collection = content('Collection', rid=3)
-        collection['cardA'] = content('Card', rid=10)
-        collection['cardB'] = content('Card', rid=20)
-        collection['cardC'] = content('Card', rid=30)
+        from kedja.resources.root import Root
+        from kedja.resources.wall import Wall
+        from kedja.resources.collection import Collection
+        from kedja.resources.card import Card
+
+        root = Root()
+        root['wall'] = wall = Wall(title='Wall', rid=2)
+        wall['collection'] = collection = Collection(rid=3)
+        collection['cardA'] = Card(rid=10)
+        collection['cardB'] = Card(rid=20)
+        collection['cardC'] = Card(rid=30)
         return root
 
     def test_get(self):
@@ -99,27 +104,35 @@ class FunctionalCollectionsAPITests(TestCase):
         self.config.include('pyramid_tm')
         self.config.include('kedja.testing')
         self.config.include('kedja.views.api.relations')
-        # FIXME: Check with permissions too?
-        self.config.testing_securitypolicy(permissive=True)
+        self.config.include('kedja.security.default_acl')
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='100'))
 
     def _fixture(self, request):
         from kedja import root_factory
         root = root_factory(request)
-        content = request.registry.content
-        root['wall'] = wall = content('Wall', rid=2)
-        root['wall']['collection'] = collection = content('Collection', rid=3)
-        collection['cardA'] = content('Card', rid=10)
-        collection['cardB'] = content('Card', rid=20)
-        collection['cardC'] = content('Card', rid=30)
+        from kedja.resources.wall import Wall
+        from kedja.resources.collection import Collection
+        from kedja.resources.card import Card
+        root['wall'] = wall = Wall(rid=2)
+        root['wall']['collection'] = collection = Collection(rid=3)
+        collection['cardA'] = Card(rid=10)
+        collection['cardB'] = Card(rid=20)
+        collection['cardC'] = Card(rid=30)
         wall.relations_map[1] = [10, 20]
         commit()
         return root
 
+    def _request(self):
+        request = testing.DummyRequest()
+        apply_request_extensions(request)
+        self.config.begin(request)
+        return request
+
     def test_get(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/walls/2/relations/1', status=200)
         self.assertEqual(response.json_body, {'members': [10, 20], 'relation_id': 1})
@@ -127,8 +140,7 @@ class FunctionalCollectionsAPITests(TestCase):
     def test_get_404(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.get('/api/1/walls/2/relations/404', status=404)
         app.get('/api/1/walls/404/relations/1', status=404)
@@ -136,8 +148,7 @@ class FunctionalCollectionsAPITests(TestCase):
     def test_put(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.put('/api/1/walls/2/relations/1', params=dumps({'members': [10, 20, 30]}), status=200)
         self.assertEqual({'members': [10, 20, 30], 'relation_id': 1}, response.json_body)
@@ -145,16 +156,14 @@ class FunctionalCollectionsAPITests(TestCase):
     def test_put_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.put('/api/1/walls/2/relations/1', params=dumps({'members': 'Jeff & Stanley'}), status=400)
 
     def test_delete(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.delete('/api/1/walls/2/relations/1', status=200)
         self.assertEqual({"removed": 1}, response.json_body)
@@ -162,8 +171,7 @@ class FunctionalCollectionsAPITests(TestCase):
     def test_delete_404(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.delete('/api/1/walls/2/relations/404', status=404)
         app.delete('/api/1/walls/404/relations/1', status=404)
@@ -171,8 +179,7 @@ class FunctionalCollectionsAPITests(TestCase):
     def test_collection_get(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         response = app.get('/api/1/walls/2/relations', status=200)
         self.assertEqual([{'members': [10, 20], 'relation_id': 1}], response.json_body)
@@ -180,16 +187,14 @@ class FunctionalCollectionsAPITests(TestCase):
     def test_collection_get_404(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.get('/api/1/walls/404/relations', status=404)
 
     def test_collection_post(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         root = self._fixture(request)
         response = app.post('/api/1/walls/2/relations', params=dumps({'members': [10, 30]}), status=200)
         # Find the new object
@@ -203,16 +208,14 @@ class FunctionalCollectionsAPITests(TestCase):
     def test_collection_post_bad_data(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         app.post('/api/1/walls/2/relations', params=dumps({'members': "Johan och ett par till"}), status=400)
 
     def test_collection_options(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         headers = (('Access-Control-Request-Method', 'POST'), ('Origin', 'http://localhost'))
         app.options('/api/1/walls/2/relations', status=200, headers=headers)
@@ -220,8 +223,7 @@ class FunctionalCollectionsAPITests(TestCase):
     def test_options(self):
         wsgiapp = self.config.make_wsgi_app()
         app = TestApp(wsgiapp)
-        request = testing.DummyRequest()
-        apply_request_extensions(request)
+        request = self._request()
         self._fixture(request)
         headers = (('Access-Control-Request-Method', 'PUT'), ('Origin', 'http://localhost'))
         app.options('/api/1/walls/2/relations/123', status=200, headers=headers)

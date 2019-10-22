@@ -6,7 +6,6 @@ from logging import getLogger
 from random import choice
 from string import ascii_letters, digits
 
-from arche.content import ContentType
 from pyramid.decorator import reify
 from pyramid.threadlocal import get_current_registry
 from zope.interface import implementer
@@ -118,8 +117,8 @@ def remove_credentials(userid:str, token:str, registry=None):
         cred.clear()
 
 
-CredentialsContent = ContentType(factory=Credentials, title=_("Credentials"))
+# CredentialsContent = ContentType(factory=Credentials, title=_("Credentials"))
 
 
 def includeme(config):
-    config.add_content(CredentialsContent)
+    config.add_content(Credentials)

@@ -2,7 +2,9 @@ from json import JSONDecodeError
 from logging import getLogger
 
 import colander
-from arche.content import VIEW
+from kedja.core.mutator import Mutator
+from kedja.permissions import VIEW
+from kedja.utils import init_schema, get_resource_type, get_permission_name
 from pyramid.decorator import reify
 from pyramid.traversal import find_root
 
@@ -56,7 +58,7 @@ class APIBase(object):
     def check_type_name(self, resource, type_name=None):
         if type_name is None:
             return True
-        if type_name == getattr(resource, 'type_name', object()):
+        if type_name == get_resource_type(resource):
             return True
         self.error("The fetched resource is not a %r" % type_name, type='path', status=404)
         return False
@@ -94,9 +96,10 @@ class ResourceAPIBase(APIBase):
         resource = self.get_resource(rid)
         self.check_type_name(resource, type_name=type_name)
         appstruct = self.get_json_appstruct()
-        # Note: The mutator API will probably change!
-        with self.request.get_mutator(resource) as mutator:
-            changed = mutator.update(appstruct)
+        schema_factory = self.request.get_default_schema(resource)
+        schema = init_schema(schema_factory, resource=resource, registry=self.request.registry)
+        with Mutator(resource, schema, registry=self.request.registry) as m:
+            changed = m.update(appstruct)
         # Log changed?
         return resource
 
@@ -115,13 +118,14 @@ class ResourceAPIBase(APIBase):
         for x in parent.values():
             if type_name is None:
                 resources.append(x)
-            elif getattr(x, 'type_name', object()) == type_name:
+            elif get_resource_type(x) == type_name:
                 resources.append(x)
         results = []
         # FIXME: This is really slow and needs to be cached. At least fetch things that we know could be okay,
         # and then check
         for x in resources:
-            if self.request.registry.content.has_permission_type(x, self.request, VIEW):
+            view_perm = get_permission_name(x, VIEW)
+            if self.request.has_permission(view_perm, x):
                 results.append(x)
         return results
 
@@ -133,9 +137,10 @@ class ResourceAPIBase(APIBase):
         # Should be the root
         parent.add(str(new_res.rid), new_res)
         appstruct = self.get_json_appstruct()
-        # Note: The mutator API will probably change!
-        with self.request.get_mutator(new_res) as mutator:
-            changed = mutator.update(appstruct)
+        schema_factory = self.request.get_default_schema(new_res)
+        schema = init_schema(schema_factory, resource=new_res, registry=self.request.registry)
+        with Mutator(new_res, schema, registry=self.request.registry) as m:
+            changed = m.update(appstruct)
         # Log changed?
         return new_res
 

@@ -2,7 +2,6 @@ from logging import getLogger
 
 from BTrees.LOBTree import LOBTree
 from BTrees.OOBTree import OOSet
-from arche.interfaces import IResourceAdded
 from pyramid.decorator import reify
 from pyramid.location import lineage
 from pyramid.security import ALL_PERMISSIONS
@@ -161,27 +160,3 @@ class SecurityAwareMixin(object):
             'denied': list(denied),
             'all_other_allowed': all_other_allowed,
         }
-
-
-def set_role_from_authenticated(event):
-    """ Some content types within the content registry has a specific attribute called ownership_role.
-        It only exists so the currently logged in user will get that role automatically.
-
-        This subscriber listens to IResourceAdded events which have ISecurityAware resources.
-    """
-    resource = event.context
-    type_name = getattr(resource, 'type_name', resource.__class__.__name__)
-    ctype = event.registry.content[type_name]
-    role = ctype.kwargs.get('ownership_role', None)
-    if role is not None:
-        try:
-            userid = event.request.authenticated_userid
-        except AttributeError:
-            logger.exception("request not found, this is okay during unit tests")
-            userid = None
-        if userid:
-            resource.add_user_roles(userid, role)
-
-
-def includeme(config):
-    config.add_subscriber(set_role_from_authenticated, IResourceAdded, context=ISecurityAware)

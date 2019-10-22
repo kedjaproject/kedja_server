@@ -1,6 +1,8 @@
 from unittest import TestCase
 
+from kedja.utils import get_permission_name
 from pyramid import testing
+from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.request import apply_request_extensions
 from pyramid.security import forget
 
@@ -14,7 +16,6 @@ class PrivateWallACLTests(TestCase):
     def setUp(self):
         self.config = testing.setUp()
         self.config.include('kedja.testing.minimal')
-        self.config.include('kedja.config')
         self.config.include('kedja.security')
         self.config.include('kedja.security.default_acl')
         self.config.include('kedja.models')
@@ -37,7 +38,8 @@ class PrivateWallACLTests(TestCase):
         wall = self._fixture()
         # Just to make sure
         self.assertIn(WALL_OWNER, wall.get_roles(10))
-        self.assertTrue(request.registry.content.has_permission_type(wall, request, VIEW))
+        permission = get_permission_name(wall, VIEW, registry=self.config.registry)
+        self.assertTrue(request.has_permission(permission, wall))
 
     def test_private_wall_unauthenticated(self):
         request = testing.DummyRequest()
@@ -47,7 +49,8 @@ class PrivateWallACLTests(TestCase):
         # Just to make sure
         self.assertEqual(request.authenticated_userid, None)
         wall = self._fixture()
-        self.assertFalse(request.registry.content.has_permission_type(wall, request, VIEW))
+        permission = get_permission_name(wall, VIEW, registry=self.config.registry)
+        self.assertFalse(request.has_permission(permission, wall))
 
 
 class PublicWallACLTests(TestCase):
@@ -55,12 +58,12 @@ class PublicWallACLTests(TestCase):
     def setUp(self):
         self.config = testing.setUp()
         self.config.include('kedja.testing.minimal')
-        self.config.include('kedja.config')
         self.config.include('kedja.security')
         self.config.include('kedja.security.default_acl')
+        self.config.set_authorization_policy(ACLAuthorizationPolicy())
+        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='10'))
         self.config.include('kedja.models')
         self.config.include('kedja.resources')
-        self.config.set_authentication_policy(TestingAuthenticationPolicy(userid='10'))
 
     def tearDown(self):
         testing.tearDown()
@@ -79,4 +82,5 @@ class PublicWallACLTests(TestCase):
         # Just to make sure
         self.assertEqual(request.authenticated_userid, None)
         wall = self._fixture()
-        self.assertTrue(request.registry.content.has_permission_type(wall, request, VIEW))
+        permission = get_permission_name(wall, VIEW, registry=self.config.registry)
+        self.assertTrue(request.has_permission(permission, wall))

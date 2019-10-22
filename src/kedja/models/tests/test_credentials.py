@@ -24,7 +24,8 @@ class CredentialsTests(TestCase):
 
     def _fixture(self, request):
         from kedja.models.appmaker import root_populator
-        root = self.config.registry.content('Root')
+        from kedja.resources.root import Root
+        root = Root()
         root_populator(root, request)
         return root
 

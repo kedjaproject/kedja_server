@@ -5,7 +5,7 @@ from cornice.validators import colander_validator
 from kedja.interfaces import IWall
 from kedja.permissions import VIEW
 
-from kedja.resources.wall import WallSchema
+from kedja.resources.wall import WallSchema, WALL_PERMISSIONS
 from kedja.utils import get_valid_acls
 from kedja.views.api.base import BaseResponseAPISchema
 from kedja.views.api.base import ResourceAPISchema
@@ -67,7 +67,7 @@ class WallsAPIView(ResourceAPIBase):
         for obj in self.context.values():
             if IWall.providedBy(obj) and \
                 bool(obj.get_roles(self.request.authenticated_userid)) and \
-                    self.request.registry.content.has_permission_type(obj, self.request, VIEW):
+                    self.request.has_permission(WALL_PERMISSIONS[VIEW], obj):
                 yield obj
 
     @view(schema=None)
